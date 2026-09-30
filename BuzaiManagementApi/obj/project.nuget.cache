@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "dgSpecHash": "20RB1jG6y9w=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\k-shikata\\Desktop\\Buzai\\BuzaiManagementApi\\BuzaiManagementApi.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\k-shikata\\.nuget\\packages\\dapper\\2.1.89\\dapper.2.1.89.nupkg.sha512",
+    "C:\\Users\\k-shikata\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.11\\microsoft.aspnetcore.openapi.10.0.11.nupkg.sha512",
+    "C:\\Users\\k-shikata\\.nuget\\packages\\microsoft.bcl.cryptography\\9.0.18\\microsoft.bcl.cryptography.9.0.18.nupkg.sha512",
+    "C:\\Users\\k-shikata\\.nuget\\packages\\microsoft.data.sqlclient\\7.1.0\\microsoft.data.sqlclient.7.1.0.nupkg.sha512",
+    "C:\\Users\\k-shikata\\.nuget\\packages\\microsoft.data.sqlclient.extensions.abstractions\\7.1.0\\microsoft.data.sqlclient.extensions.abstractions.7.1.0.nupkg.sha512",
+    "C:\\Users\\k-shikata\\.nuget\\packages\\microsoft.data.sqlclient.internal.logging\\7.1.0\\microsoft.data.sqlclient.internal.logging.7.1.0.nupkg.sha512",
+    "C:\\Users\\k-shikata\\.nuget\\packages\\microsoft.data.sqlclient.sni.runtime\\7.1.0\\microsoft.data.sqlclient.sni.runtime.7.1.0.nupkg.sha512",
+    "C:\\Users\\k-shikata\\.nuget\\packages\\microsoft.identitymodel.abstractions\\8.16.0\\microsoft.identitymodel.abstractions.8.16.0.nupkg.sha512",
+    "C:\\Users\\k-shikata\\.nuget\\packages\\microsoft.identitymodel.jsonwebtokens\\8.16.0\\microsoft.identitymodel.jsonwebtokens.8.16.0.nupkg.sha512",
+    "C:\\Users\\k-shikata\\.nuget\\packages\\microsoft.identitymodel.logging\\8.16.0\\microsoft.identitymodel.logging.8.16.0.nupkg.sha512",
+    "C:\\Users\\k-shikata\\.nuget\\packages\\microsoft.identitymodel.protocols\\8.16.0\\microsoft.identitymodel.protocols.8.16.0.nupkg.sha512",
+    "C:\\Users\\k-shikata\\.nuget\\packages\\microsoft.identitymodel.protocols.openidconnect\\8.16.0\\microsoft.identitymodel.protocols.openidconnect.8.16.0.nupkg.sha512",
+    "C:\\Users\\k-shikata\\.nuget\\packages\\microsoft.identitymodel.tokens\\8.16.0\\microsoft.identitymodel.tokens.8.16.0.nupkg.sha512",
+    "C:\\Users\\k-shikata\\.nuget\\packages\\microsoft.openapi\\2.7.5\\microsoft.openapi.2.7.5.nupkg.sha512",
+    "C:\\Users\\k-shikata\\.nuget\\packages\\microsoft.sqlserver.server\\1.0.0\\microsoft.sqlserver.server.1.0.0.nupkg.sha512",
+    "C:\\Users\\k-shikata\\.nuget\\packages\\npgsql\\10.0.3\\npgsql.10.0.3.nupkg.sha512",
+    "C:\\Users\\k-shikata\\.nuget\\packages\\system.configuration.configurationmanager\\9.0.18\\system.configuration.configurationmanager.9.0.18.nupkg.sha512",
+    "C:\\Users\\k-shikata\\.nuget\\packages\\system.identitymodel.tokens.jwt\\8.16.0\\system.identitymodel.tokens.jwt.8.16.0.nupkg.sha512",
+    "C:\\Users\\k-shikata\\.nuget\\packages\\system.security.cryptography.pkcs\\9.0.18\\system.security.cryptography.pkcs.9.0.18.nupkg.sha512",
+    "C:\\Users\\k-shikata\\.nuget\\packages\\system.security.cryptography.protecteddata\\9.0.18\\system.security.cryptography.protecteddata.9.0.18.nupkg.sha512"
+  ],
+  "logs": []
+}
