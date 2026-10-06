@@ -26,7 +26,6 @@ namespace BuzaiManagementApi.Controllers
         /// 稼働条件（稼働フラグ・稼働時間）を取得するエンドポイント
         /// GET: api/SKL0001G01/conditions
         /// </summary>
-        /// <returns>稼働条件情報</returns>
         [HttpGet("conditions")]
         public IActionResult GetConditions()
         {
@@ -55,14 +54,11 @@ namespace BuzaiManagementApi.Controllers
         /// ログイン認証・多重ログインチェック・情報取得を行うエンドポイント
         /// POST: api/SKL0001G01/login
         /// </summary>
-        /// <param name="request">ログインリクエスト情報</param>
-        /// <returns>ログイン処理結果</returns>
         [HttpPost("login")]
         public IActionResult Login([FromBody] SKL0001G01LoginRequest request)
         {
             _logger.LogInformation("Login 開始: userCd={UserCd}", request?.UserCd);
 
-            // パスワードのチェックを外し、ユーザーコードのみをチェックする
             if (string.IsNullOrEmpty(request?.UserCd))
             {
                 _logger.LogWarning("Login 警告: ユーザーコードが空です。");
@@ -71,13 +67,17 @@ namespace BuzaiManagementApi.Controllers
 
             try
             {
-                // 1. ユーザー情報の取得（存在チェックのみ、パスワード照合は行わない）
-                var userInfo = _repository.GetUserInfo(request.UserCd);
-                if (userInfo == null)
+                // 1. ユーザー情報および各マスタ（部署・業務担当）の詳細検証・取得
+                var validationResult = _repository.GetUserInfoDetailed(request.UserCd);
+
+                if (validationResult.Status != UserErrorStatus.Success)
                 {
-                    _logger.LogWarning("Login 警告: ユーザー登録されていません (userCd={UserCd})", request.UserCd);
-                    return Ok(new { success = false, message = "ユーザー登録されていません" + "\n" + "ユーザー登録してください" });
+                    // ステータスに応じた個別の警告ログとメッセージを返す
+                    _logger.LogWarning("Login 警告: ユーザーまたはマスタ検証エラー (Status={Status}, userCd={UserCd})", validationResult.Status, request.UserCd);
+                    return Ok(new { success = false, message = validationResult.Message });
                 }
+
+                var userInfo = validationResult.UserDto!;
 
                 // 2. 多重ログインチェック
                 var loginStatus = _repository.GetLoginStatus(request.UserCd);

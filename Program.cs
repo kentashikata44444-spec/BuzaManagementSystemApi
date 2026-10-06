@@ -24,7 +24,7 @@ Console.WriteLine($"[DEBUG] 読み込んだモード: [{mode}] (ファイルパ�
 bool isHonban = mode.Equals("Honban", StringComparison.OrdinalIgnoreCase);
 
 string configPath = isHonban
-    ? @"C:\4.改善室\★改善室\A05.config\postgres_addin.config"
+    ? @"C:\4.改善室\★改善室\A04.config\postgres_addin.config"
     : Path.Combine(AppContext.BaseDirectory, "postgres_addin_Test.config");
 
 Console.WriteLine($"[DEBUG] 探索中の設定ファイルパス: {configPath}");

@@ -97,10 +97,10 @@ namespace BuzaiManagementApi.Repositories
 
             try
             {
-                // ユーザーを基準に、部署と業務担当を LEFT JOIN する
+                // ▼ 修正: t."GYMTNTCD" を "GYMTNTCD" として取得できるように修正
                 string sql = "SELECT u.\"USERCD\", u.\"USERMEISHO\", u.\"PSW\", u.\"BUSHOCD\", " +
                              "b.\"BUSHOCD\" AS BUSHO_CHECK, b.\"BUSHONAME\", " +
-                             "t.\"GYMTNTCD\" AS TNT_CHECK, t.\"GYMTNTMEI\" " +
+                             "t.\"GYMTNTCD\", t.\"GYMTNTCD\" AS TNT_CHECK, t.\"GYMTNTMEI\" " +
                              "FROM \"COMPLEMENTARY\".\"SAT_USER_M\" u " +
                              "LEFT JOIN \"COMPLEMENTARY\".\"SAT_BUSHO_M\" b ON u.\"BUSHOCD\" = b.\"BUSHOCD\" AND b.\"JOTAIKBN\" = '1' " +
                              "LEFT JOIN \"COMPLEMENTARY\".\"SAT_GYOMTNT_MB\" t ON t.\"USERCD\" = u.\"USERCD\" AND t.\"JOTAIKBN\" = '1' " +

@@ -43,7 +43,7 @@ public class DbConnectionFactory : IDbConnectionFactory
         // "Honban" かどうかでパスを切り替え
         if (mode.Equals("Honban", StringComparison.OrdinalIgnoreCase))
         {
-            _xmlPath = @"C:\4.改善室\★改善室\A05.config\postgres_addin.config";
+            _xmlPath = @"C:\4.改善室\★改善室\A04.config\postgres_addin.config";
             _logger.LogInformation("本番モード（Honban）の接続設定ファイルを採用しました: {Path}", _xmlPath);
         }
         else
