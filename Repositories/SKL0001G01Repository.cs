@@ -89,48 +89,70 @@ namespace BuzaiManagementApi.Repositories
         }
 
         /// <summary>
-        /// ユーザー情報・部署情報・業務担当情報を取得します。
+        /// ユーザー情報・部署情報・業務担当情報を個別にチェックして取得します。
         /// </summary>
-        public SKL0001G01UserDto? GetUserInfo(string userCd)
+        public SKL0001G01UserValidationResult GetUserInfoDetailed(string userCd)
         {
-            _logger.LogInformation("GetUserInfo 開始: userCd={UserCd}", userCd);
+            _logger.LogInformation("GetUserInfoDetailed 開始: userCd={UserCd}", userCd);
 
             try
             {
-                string sql = "SELECT u.\"USERCD\", u.\"USERMEISHO\", u.\"PSW\", u.\"BUSHOCD\", b.\"BUSHONAME\", " +
-                             "t.\"GYMTNTCD\", t.\"GYMTNTMEI\" " +
+                // ユーザーを基準に、部署と業務担当を LEFT JOIN する
+                string sql = "SELECT u.\"USERCD\", u.\"USERMEISHO\", u.\"PSW\", u.\"BUSHOCD\", " +
+                             "b.\"BUSHOCD\" AS BUSHO_CHECK, b.\"BUSHONAME\", " +
+                             "t.\"GYMTNTCD\" AS TNT_CHECK, t.\"GYMTNTMEI\" " +
                              "FROM \"COMPLEMENTARY\".\"SAT_USER_M\" u " +
                              "LEFT JOIN \"COMPLEMENTARY\".\"SAT_BUSHO_M\" b ON u.\"BUSHOCD\" = b.\"BUSHOCD\" AND b.\"JOTAIKBN\" = '1' " +
-                             "LEFT JOIN \"COMPLEMENTARY\".\"SAT_GYOMTNT_MB\" t ON SUBSTRING(t.\"GYMTNTCD\" FROM 4) = u.\"USERCD\" AND t.\"JOTAIKBN\" = '1' " +
+                             "LEFT JOIN \"COMPLEMENTARY\".\"SAT_GYOMTNT_MB\" t ON t.\"USERCD\" = u.\"USERCD\" AND t.\"JOTAIKBN\" = '1' " +
                              "WHERE u.\"USERCD\" = @userCd AND u.\"JOTAIKBN\" = '1'";
 
                 using var conn = CreateConnection();
                 using var cmd = new NpgsqlCommand(sql, conn);
                 cmd.Parameters.AddWithValue("@userCd", userCd);
                 conn.Open();
+
                 using var reader = cmd.ExecuteReader();
-                if (reader.Read())
+                if (!reader.Read())
                 {
-                    var dto = new SKL0001G01UserDto
-                    {
-                        UserCd = reader["USERCD"]?.ToString()?.Trim() ?? "",
-                        UserName = reader["USERMEISHO"]?.ToString()?.Trim() ?? "",
-                        Password = reader["PSW"]?.ToString()?.Trim() ?? "",
-                        BushoCd = reader["BUSHOCD"]?.ToString()?.Trim() ?? "",
-                        BushoName = reader["BUSHONAME"]?.ToString()?.Trim() ?? "",
-                        GymTntCd = reader["GYMTNTCD"]?.ToString()?.Trim() ?? "",
-                        GymTntMei = reader["GYMTNTMEI"]?.ToString()?.Trim() ?? ""
-                    };
-                    _logger.LogInformation("GetUserInfo 成功: userCd={UserCd}, userName={UserName}", dto.UserCd, dto.UserName);
-                    return dto;
+                    // 1. ユーザーマスタ自体が存在しない、または無効
+                    _logger.LogWarning("GetUserInfoDetailed 警告: ユーザーが存在しないか無効です (userCd={UserCd})", userCd);
+                    return new SKL0001G01UserValidationResult { Status = UserErrorStatus.UserNotFound, Message = "ユーザーIDが登録されていないか、無効なユーザーです。" };
                 }
 
-                _logger.LogWarning("GetUserInfo 警告: 指定されたユーザーが見つかりません (userCd={UserCd})", userCd);
-                return null;
+                // 2. 部署マスタのチェック (BUSHO_CHECK が NULL なら部署マスタに不備あり)
+                var bushoCheck = reader["BUSHO_CHECK"]?.ToString();
+                if (string.IsNullOrWhiteSpace(bushoCheck))
+                {
+                    _logger.LogWarning("GetUserInfoDetailed 警告: 部署マスタが見つからないか無効です (userCd={UserCd})", userCd);
+                    return new SKL0001G01UserValidationResult { Status = UserErrorStatus.BushoNotFound, Message = "部署マスタが登録されていません \nシステム管理者に問合せ願います" };
+                }
+
+                // 3. 業務担当マスタのチェック (TNT_CHECK が NULL なら業務担当マスタに不備あり)
+                var tntCheck = reader["TNT_CHECK"]?.ToString();
+                if (string.IsNullOrWhiteSpace(tntCheck))
+                {
+                    _logger.LogWarning("GetUserInfoDetailed 警告: 業務担当マスタが見つからないか無効です (userCd={UserCd})", userCd);
+                    return new SKL0001G01UserValidationResult { Status = UserErrorStatus.GymTntNotFound, Message = "業務担当マスタが登録されていません \nシステム管理者に問合せ願います" };
+                }
+
+                // すべて正常に取得できた場合
+                var dto = new SKL0001G01UserDto
+                {
+                    UserCd = reader["USERCD"]?.ToString()?.Trim() ?? "",
+                    UserName = reader["USERMEISHO"]?.ToString()?.Trim() ?? "",
+                    Password = reader["PSW"]?.ToString()?.Trim() ?? "",
+                    BushoCd = reader["BUSHOCD"]?.ToString()?.Trim() ?? "",
+                    BushoName = reader["BUSHONAME"]?.ToString()?.Trim() ?? "",
+                    GymTntCd = reader["GYMTNTCD"]?.ToString()?.Trim() ?? "",
+                    GymTntMei = reader["GYMTNTMEI"]?.ToString()?.Trim() ?? ""
+                };
+
+                _logger.LogInformation("GetUserInfoDetailed 成功: userCd={UserCd}", userCd);
+                return new SKL0001G01UserValidationResult { Status = UserErrorStatus.Success, UserDto = dto };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "GetUserInfo エラー: userCd={UserCd}", userCd);
+                _logger.LogError(ex, "GetUserInfoDetailed エラー: userCd={UserCd}", userCd);
                 throw;
             }
         }
@@ -177,7 +199,6 @@ namespace BuzaiManagementApi.Repositories
         /// </summary>
         public bool InsertLoginInfo(SKL0001G01LoginRequest request)
         {
-            // request が null の場合のガード節を追加
             if (request == null)
             {
                 _logger.LogWarning("InsertLoginInfo 警告: request が null です。");
@@ -186,22 +207,32 @@ namespace BuzaiManagementApi.Repositories
 
             _logger.LogInformation("InsertLoginInfo 開始: userCd={UserCd}", request.UserCd);
 
-            string sql = "INSERT INTO \"COMPLEMENTARY\".\"SAT_LOGINJOHO\" " +
-                        "(\"SYSTEMCD\", \"SYSNAME\", \"USERCD\", \"USERNAME\", \"BUSHOCD\", \"BUSHONAME\", \"TOROKUSHACD\", \"JOTAIKBN\") " +
-                        "VALUES " +
-                        "('10', '部材管理システム', @UserCd, @UserName, @BushoCd, @BushoName, @UserCd, '1')";
+            // 古いログイン情報を削除するSQL（異常終了などで残ってしまったセッションの掃除）
+            string deleteSql = "DELETE FROM \"COMPLEMENTARY\".\"SAT_LOGINJOHO\" WHERE \"USERCD\" = @UserCd";
+
+            // 新規登録するSQL
+            string insertSql = "INSERT INTO \"COMPLEMENTARY\".\"SAT_LOGINJOHO\" " +
+                            "(\"SYSTEMCD\", \"SYSNAME\", \"USERCD\", \"USERNAME\", \"BUSHOCD\", \"BUSHONAME\", \"TOROKUSHACD\", \"JOTAIKBN\") " +
+                            "VALUES " +
+                            "('10', '部材管理システム', @UserCd, @UserName, @BushoCd, @BushoName, @UserCd, '1')";
 
             try
             {
                 _connectionFactory.ExecuteInPostgresTransaction((conn, tx) =>
                 {
-                    using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)conn, (NpgsqlTransaction)tx);
-                    cmd.Parameters.AddWithValue("@UserCd", request.UserCd ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@UserName", request.UserName ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@BushoCd", request.BushoCd ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@BushoName", request.BushoName ?? (object)DBNull.Value);
+                    // 1. 念のため既存のログイン情報を削除して多重ログインを防ぐ
+                    using var deleteCmd = new NpgsqlCommand(deleteSql, (NpgsqlConnection)conn, (NpgsqlTransaction)tx);
+                    deleteCmd.Parameters.AddWithValue("@UserCd", request.UserCd ?? (object)DBNull.Value);
+                    deleteCmd.ExecuteNonQuery();
+
+                    // 2. 新しいログイン情報を登録
+                    using var insertCmd = new NpgsqlCommand(insertSql, (NpgsqlConnection)conn, (NpgsqlTransaction)tx);
+                    insertCmd.Parameters.AddWithValue("@UserCd", request.UserCd ?? (object)DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@UserName", request.UserName ?? (object)DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@BushoCd", request.BushoCd ?? (object)DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@BushoName", request.BushoName ?? (object)DBNull.Value);
                     
-                    cmd.ExecuteNonQuery();
+                    insertCmd.ExecuteNonQuery();
                 }, _logger);
 
                 _logger.LogInformation("InsertLoginInfo 成功: userCd={UserCd}", request.UserCd);
