@@ -84,7 +84,7 @@ namespace BuzaiManagementApi.Controllers
                 if (loginStatus.IsLogined)
                 {
                     _logger.LogWarning("Login 警告: 既にログイン中です (userCd={UserCd}, sysName={SysName})", request.UserCd, loginStatus.SysName);
-                    return Ok(new { success = false, message = $"既にログインしています" + "\n" + "ログアウト後再度バーコードを読み込んでください" });
+                    return Ok(new { success = false, message = $"既にログインしています" + "\n" + "ログアウト後再度QRを読み込んでください" });
                 }
 
                 // 3. ログイン情報の登録（セッション保持など）

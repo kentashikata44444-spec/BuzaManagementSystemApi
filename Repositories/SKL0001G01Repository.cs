@@ -116,7 +116,7 @@ namespace BuzaiManagementApi.Repositories
                 {
                     // 1. ユーザーマスタ自体が存在しない、または無効
                     _logger.LogWarning("GetUserInfoDetailed 警告: ユーザーが存在しないか無効です (userCd={UserCd})", userCd);
-                    return new SKL0001G01UserValidationResult { Status = UserErrorStatus.UserNotFound, Message = "ユーザーIDが登録されていないか、無効なユーザーです。" };
+                    return new SKL0001G01UserValidationResult { Status = UserErrorStatus.UserNotFound, Message = "ユーザーが登録されていません \nユーザー登録してください" };
                 }
 
                 // 2. 部署マスタのチェック (BUSHO_CHECK が NULL なら部署マスタに不備あり)
@@ -210,11 +210,11 @@ namespace BuzaiManagementApi.Repositories
             // 古いログイン情報を削除するSQL（異常終了などで残ってしまったセッションの掃除）
             string deleteSql = "DELETE FROM \"COMPLEMENTARY\".\"SAT_LOGINJOHO\" WHERE \"USERCD\" = @UserCd";
 
-            // 新規登録するSQL
+            // 新規登録するSQL（KOSHINDTM に明示的に NULL を指定）
             string insertSql = "INSERT INTO \"COMPLEMENTARY\".\"SAT_LOGINJOHO\" " +
-                            "(\"SYSTEMCD\", \"SYSNAME\", \"USERCD\", \"USERNAME\", \"BUSHOCD\", \"BUSHONAME\", \"TOROKUSHACD\", \"JOTAIKBN\") " +
-                            "VALUES " +
-                            "('10', '部材管理システム', @UserCd, @UserName, @BushoCd, @BushoName, @UserCd, '1')";
+                               "(\"SYSTEMCD\", \"SYSNAME\", \"USERCD\", \"USERNAME\", \"BUSHOCD\", \"BUSHONAME\", \"TOROKUSHACD\", \"KOSHINDTM\", \"JOTAIKBN\") " +
+                               "VALUES " +
+                               "('10', '部材管理システム', @UserCd, @UserName, @BushoCd, @BushoName, @UserCd, NULL, '1')";
 
             try
             {

@@ -1,12 +1,41 @@
+using System;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using BuzaiManagementApi.Repositories;
 using Serilog;
+using Serilog.Events;
 
-// ==========================================
-// 1. 環境判定ファイルとXMLから設定を動的読み込み
-// ==========================================
+// ユーザーのAppData\Local\COMPLEMENTARY\Logs パスを動的に構築
+string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+string localAppDataLogsDir = Path.Combine(userProfile, "AppData", "Local", "COMPLEMENTARY", "Logs");
+Directory.CreateDirectory(localAppDataLogsDir);
+
+// Serilogによるファイル出力（詳細）およびコンソール出力（最小限）の設定
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    // コンソールには自作の最小限ログ（Information以上、かつMicrosoft等のフレームワークログを除外）のみ出力する
+    .WriteTo.Logger(lc => lc
+        .Filter.ByIncludingOnly(evt => 
+            evt.Level >= LogEventLevel.Error || 
+            (evt.Properties.ContainsKey("SourceContext") && evt.Properties["SourceContext"].ToString().Contains("BuzaiManagementApi")) ||
+            evt.MessageTemplate.Text.Contains("アプリケーション") ||
+            evt.MessageTemplate.Text.Contains("Webアプリケーション"))
+        .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+    )
+    // ファイルには従来通りすべて出力し、shared: true で日付ごとに1ファイルへ追記
+    .WriteTo.File(
+        path: Path.Combine(localAppDataLogsDir, "api_debug_log-.txt"),
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 90,
+        shared: true,
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}"
+    )
+    .CreateLogger();
+
+Log.Information("アプリケーションの接続・起動処理を開始します。");
+
 string envModeFilePath = Path.Combine(AppContext.BaseDirectory, "env_mode.txt");
 string mode = "Test";
 
@@ -15,88 +44,134 @@ if (File.Exists(envModeFilePath))
     try { mode = File.ReadAllText(envModeFilePath).Trim(); } catch { }
 }
 
-// ASP.NET Coreが最初に見る環境変数を強制的に上書きする
 Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", mode);
+Log.Information("読み込んだモード: [{Mode}] (ファイルパス: {Path})", mode, envModeFilePath);
 
-Console.WriteLine($"[DEBUG] 読み込んだモード: [{mode}] (ファイルパス: {envModeFilePath})");
-
-// "Honban" かどうかでモード判定してXMLファイルのパスを決定
+// --- 設定ファイルのパス決定部分 ---
 bool isHonban = mode.Equals("Honban", StringComparison.OrdinalIgnoreCase);
 
+// userProfile は上で既に宣言されているので、そのまま再利用します
+string localAppDataDir = Path.Combine(userProfile, "AppData", "Local", "COMPLEMENTARY");
+Directory.CreateDirectory(localAppDataDir);
+
 string configPath = isHonban
-    ? @"C:\4.改善室\★改善室\A04.config\postgres_addin.config"
-    : Path.Combine(AppContext.BaseDirectory, "postgres_addin_Test.config");
+    ? @"\\192.168.0.10\4.改善室\★改善室\A05.config\postgres_addin.ini"
+    : Path.Combine(localAppDataDir, "postgres_addin_Test.ini");
 
-Console.WriteLine($"[DEBUG] 探索中の設定ファイルパス: {configPath}");
-Console.WriteLine($"[DEBUG] ファイルの存在有無: {File.Exists(configPath)}");
+Log.Information("探索中の設定ファイルパス: {Path}", configPath);
+Log.Information("ファイルの存在有無: {Exists}", File.Exists(configPath));
 
-// XMLファイルから起動用URL（IPアドレス）を読み込む（ファイルがない場合のデフォルト値も用意）
-string serverUrl = "http://192.168.3.6:8080"; 
+string serverUrl = "http://0.0.0.0:8080";
+int retentionDays = 90; // デフォルト90日
+
 if (File.Exists(configPath))
 {
     try
     {
-        // Shift-JIS（コードページ 932）を指定してテキストとして読み込む（SJIS対策）
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-        string xmlContent = File.ReadAllText(configPath, Encoding.GetEncoding(932));
+        byte[] fileBytes = File.ReadAllBytes(configPath);
         
-        // 文字列をXMLとしてパース
-        var doc = XDocument.Parse(xmlContent);
-        
-        var urlSetting = doc.Descendants("appSettings")
-            .Elements("add")
-            .FirstOrDefault(e => e.Attribute("key")?.Value == "ServerUrl")?
-            .Attribute("value")?.Value;
-
-        if (!string.IsNullOrEmpty(urlSetting))
+        string fileContent;
+        try
         {
-            serverUrl = urlSetting;
-            Console.WriteLine($"[DEBUG] XMLからURLを取得成功: {serverUrl}");
+            fileContent = Encoding.GetEncoding(932).GetString(fileBytes);
         }
-        else
+        catch
         {
-            Console.WriteLine("[DEBUG WARNING] XML内に ServerUrl が見つかりませんでした。");
+            fileContent = Encoding.UTF8.GetString(fileBytes);
+        }
+
+        // BOMやゼロ幅スペース、CRLFの正規化
+        fileContent = fileContent.Replace("\uFEFF", "").Replace("\u200B", "");
+
+        // 実際に読んでいるファイルの内容をログに出力
+        Log.Information("=== [CONFIG FILE CONTENT START] ===\n{Content}\n=== [CONFIG FILE CONTENT END] ===", fileContent);
+
+        // --- 本番・テスト共通でINI形式としてパースする ---
+        string currentSection = "";
+        var lines = fileContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        Log.Information("INIファイル総行数: {Count}", lines.Length);
+
+        foreach (var rawLine in lines)
+        {
+            string line = rawLine.Trim();
+            if (string.IsNullOrEmpty(line) || line.StartsWith(";") || line.StartsWith("#"))
+                continue;
+
+            if (line.StartsWith("[") && line.EndsWith("]"))
+            {
+                currentSection = line.Substring(1, line.Length - 2).Trim();
+                Log.Information("セクション検出: [{Section}]", currentSection);
+                continue;
+            }
+
+            int eqIndex = line.IndexOf('=');
+            if (eqIndex >= 0)
+            {
+                string key = line.Substring(0, eqIndex).Trim();
+                string val = line.Substring(eqIndex + 1).Trim();
+                if ((val.StartsWith("\"") && val.EndsWith("\"")) || (val.StartsWith("'") && val.EndsWith("'")))
+                {
+                    val = val.Substring(1, val.Length - 2);
+                }
+
+                if (currentSection.Equals("Server", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (key.Equals("ServerUrl", StringComparison.OrdinalIgnoreCase))
+                    {
+                        serverUrl = val;
+                        Log.Information("★ [Server] から ServerUrl の取得に成功: {Url}", serverUrl);
+                    }
+                    else if (key.Equals("LogRetentionDays", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (int.TryParse(val, out int parsedDays))
+                        {
+                            retentionDays = parsedDays;
+                            Log.Information("★ [Server] から LogRetentionDays の取得に成功: {Days}日", retentionDays);
+                        }
+                    }
+                }
+            }
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"[DEBUG ERROR] XMLの読み込みでエラー発生: {ex.Message}");
+        Log.Error(ex, "設定ファイルの読み込み中にエラーが発生しました: {Message}", ex.Message);
     }
 }
-else
-{
-    Console.WriteLine("[DEBUG ERROR] 指定されたパスに設定ファイルが存在しません。");
-}
 
-Console.WriteLine($"[DEBUG] 最終決定された ServerUrl: {serverUrl}");
+Log.Information("最終決定された ServerUrl: {Url}, 保存日数: {Days}日", serverUrl, retentionDays);
 
-var builder = WebApplication.CreateBuilder(args);
-
-// モード名をASP.NET Coreの環境名に反映
-builder.Environment.EnvironmentName = mode;
-
-// 読み込んだURL（IPアドレス）をASP.NET Coreに適用
-builder.WebHost.UseUrls(serverUrl);
-
-// ==========================================
-// 2. Serilog のファイル出力設定
-// ==========================================
+// ロガーの再構成（コンソール・ファイルの設定を維持）
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
-    .WriteTo.Console()
+    .WriteTo.Logger(lc => lc
+        .Filter.ByIncludingOnly(evt => 
+            evt.Level >= LogEventLevel.Error || 
+            evt.MessageTemplate.Text.Contains("アプリケーション") ||
+            evt.MessageTemplate.Text.Contains("Webアプリケーション"))
+        .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+    )
     .WriteTo.File(
-        path: "Logs/api_debug_log-.txt",
+        path: Path.Combine(localAppDataLogsDir, "api_debug_log-.txt"),
         rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: retentionDays,
+        shared: true,
         outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}"
     )
     .CreateLogger();
 
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Environment.EnvironmentName = mode;
+builder.WebHost.UseUrls(serverUrl);
+
+// ASP.NET Core標準のコンソールロギングを抑制し、Serilogに一本化
+builder.Logging.ClearProviders();
 builder.Host.UseSerilog();
 
-// データベース接続ファクトリの登録
 builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
 
-// リポジトリの登録
 builder.Services.AddTransient<SKL0001G01Repository>();
 builder.Services.AddScoped<SKL0101G01Repository>();
 builder.Services.AddScoped<CommonRepository>();
@@ -114,19 +189,14 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.MapControllers();
 
-app.MapGet("/weatherforecast", () =>
+try
 {
-    var summaries = new[] { "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching" };
-    return Enumerable.Range(1, 5).Select(index => new WeatherForecast(
-        DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-        Random.Shared.Next(-20, 55),
-        summaries[Random.Shared.Next(summaries.Length)]
-    )).ToArray();
-}).WithName("GetWeatherForecast");
-
-app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+    Log.Information("Webアプリケーションを起動します（URL: {Url}）", serverUrl);
+    app.Run();
+    Log.Information("Webアプリケーションが正常に終了しました。");
+}
+catch (Exception ex)
 {
-    int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    Log.Fatal(ex, "Webアプリケーションの実行中に致命的なエラーが発生しました: {Message}", ex.Message);
+    throw;
 }

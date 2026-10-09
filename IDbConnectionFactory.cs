@@ -2,187 +2,263 @@ using System;
 using System.Data;
 using System.IO;
 using System.Linq;
-using System.Xml.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Data.SqlClient;
 using Npgsql;
 
-/// <summary>
-/// データベース接続インスタンスを生成するためのファクトリインターフェース
-/// </summary>
-public interface IDbConnectionFactory
+namespace BuzaiManagementApi.Repositories
 {
-    /// <summary>SQL Server用の接続を作成します。</summary>
-    IDbConnection CreateSqlServerConnection();
-
-    /// <summary>PostgreSQL用の接続を作成します。</summary>
-    IDbConnection CreatePostgresConnection();
-}
-
-/// <summary>
-/// 環境判定ファイルと連動して本番・テストの接続文字列ファイルを切り替えるクラス
-/// </summary>
-public class DbConnectionFactory : IDbConnectionFactory
-{
-    private readonly ILogger<DbConnectionFactory> _logger;
-    private readonly string _xmlPath;
-
-    public DbConnectionFactory(ILogger<DbConnectionFactory> logger)
+    public interface IDbConnectionFactory
     {
-        _logger = logger;
-
-        // env_mode.txt からモードを読み取る
-        string envModeFilePath = Path.Combine(AppContext.BaseDirectory, "env_mode.txt");
-        string mode = "Test";
-
-        if (File.Exists(envModeFilePath))
-        {
-            try { mode = File.ReadAllText(envModeFilePath).Trim(); } catch { }
-        }
-
-        // "Honban" かどうかでパスを切り替え
-        if (mode.Equals("Honban", StringComparison.OrdinalIgnoreCase))
-        {
-            _xmlPath = @"C:\4.改善室\★改善室\A04.config\postgres_addin.config";
-            _logger.LogInformation("本番モード（Honban）の接続設定ファイルを採用しました: {Path}", _xmlPath);
-        }
-        else
-        {
-            _xmlPath = Path.Combine(AppContext.BaseDirectory, "postgres_addin_Test.config");
-            _logger.LogInformation("テストモード（Test）の接続設定ファイルを採用しました: {Path}", _xmlPath);
-        }
+        IDbConnection CreateSqlServerConnection();
+        IDbConnection CreatePostgresConnection();
     }
 
-    /// <summary>
-    /// XMLファイルから指定された名前の接続文字列を取得します（存在しない場合は自動作成します）。
-    /// </summary>
-    private string GetConnectionString(string name)
+    public class DbConnectionFactory : IDbConnectionFactory
     {
-        if (!File.Exists(_xmlPath))
-        {
-            _logger.LogWarning("設定ファイルが見つからないため、デフォルトファイルの自動作成を行います: {Path}", _xmlPath);
-            CreateDefaultConfigFile(_xmlPath);
-        }
+        private readonly ILogger<DbConnectionFactory> _logger;
+        private readonly string _configPath;
+        private readonly bool _isHonban;
 
-        try
-        {
-            var doc = XDocument.Load(_xmlPath);
-            var connString = doc.Descendants("add")
-                .FirstOrDefault(e => e.Attribute("name")?.Value == name)?
-                .Attribute("connectionString")?.Value;
+        // 初回読み込みした接続文字列を保持するキャッシュ用フィールド
+        private static string? _cachedPostgresConnStr;
+        private static string? _cachedSqlServerConnStr;
+        private static readonly object _lockObj = new object();
 
-            if (string.IsNullOrEmpty(connString))
+        // DbConnectionFactory.cs の該当部分を変更
+        public DbConnectionFactory(ILogger<DbConnectionFactory> logger)
+        {
+            _logger = logger;
+
+            string envModeFilePath = Path.Combine(AppContext.BaseDirectory, "env_mode.txt");
+            string mode = "Test";
+
+            if (File.Exists(envModeFilePath))
             {
-                throw new InvalidOperationException($"設定ファイル '{_xmlPath}' 内に指定された接続文字列 '{name}' が見つからないか、空です。");
+                try { mode = File.ReadAllText(envModeFilePath).Trim(); } catch { }
             }
 
-            return connString;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "接続文字列の読み込み中にエラーが発生しました（ファイル: {Path}）: {Message}", _xmlPath, ex.Message);
-            throw;
-        }
-    }
+            _isHonban = mode.Equals("Honban", StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>
-    /// 設定ファイルが存在しない場合に、SQL ServerとPostgreSQL両方の接続設定を含むひな形を作成します。
-    /// </summary>
-    private void CreateDefaultConfigFile(string path)
-    {
-        try
-        {
-            var directoryPath = Path.GetDirectoryName(path);
-            if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath))
+            // ユーザーの AppData\Local\COMPLEMENTARY パスを動的に構築
+            string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            string localAppDataDir = Path.Combine(userProfile, "AppData", "Local", "COMPLEMENTARY");
+
+            if (_isHonban)
             {
-                Directory.CreateDirectory(directoryPath);
+                _configPath = @"\\192.168.0.10\4.改善室\★改善室\A05.config\postgres_addin.ini";
+                _logger.LogInformation("本番モード（Honban）の接続設定ファイルを採用しました: {Path}", _configPath);
+            }
+            else
+            {
+                // Testモード時は AppData\Local\COMPLEMENTARY 配下を見るように変更
+                Directory.CreateDirectory(localAppDataDir);
+                _configPath = Path.Combine(localAppDataDir, "postgres_addin_Test.ini");
+                _logger.LogInformation("テストモード（Test）の接続設定ファイルを採用しました: {Path}", _configPath);
             }
 
-            string defaultXml = @"<?xml version=""1.0"" encoding=""utf-8"" ?>
-<configuration>
-  <appSettings>
-    <add key=""ServerUrl"" value=""http://192.168.3.6:8080"" />
-  </appSettings>
-  <connectionStrings>
-    <!-- SQL Server用 -->
-    <add name=""SqlServerConnection"" 
-         connectionString=""Server=myServerAddress;Database=TECHS6;Trusted_Connection=True;Connection Timeout=3;"" 
-         providerName=""System.Data.SqlClient"" />
-         
-    <!-- PostgreSQL用 -->
-    <add name=""PostgresConnection"" 
-         connectionString=""Host=localhost;Username=postgres;Password=352011;Database=DBSV;Port=5432;Search Path=COMPLEMENTARY;Timeout=3;"" 
-         providerName=""Npgsql"" />
-  </connectionStrings>
-</configuration>";
-
-            File.WriteAllText(path, defaultXml);
-            _logger.LogInformation("デフォルトの設定ファイルを自動作成しました: {Path}", path);
+            LoadConfigOnce();
         }
-        catch (Exception ex)
+
+        private void LoadConfigOnce()
         {
-            _logger.LogError(ex, "設定ファイルの自動作成に失敗しました: {Path}", path);
-            throw;
+            lock (_lockObj)
+            {
+                // すでにキャッシュされている場合は再読み込みしない
+                if (!string.IsNullOrEmpty(_cachedPostgresConnStr) && !string.IsNullOrEmpty(_cachedSqlServerConnStr))
+                {
+                    return;
+                }
+
+                if (!File.Exists(_configPath))
+                {
+                    if (!_isHonban)
+                    {
+                        _logger.LogWarning("テスト設定ファイルが見つからないため、デフォルトファイルの自動作成を行います: {Path}", _configPath);
+                        CreateDefaultConfigFile(_configPath);
+                    }
+                    else
+                    {
+                        throw new FileNotFoundException($"本番用の設定ファイルが見つかりません: {_configPath}");
+                    }
+                }
+
+                try
+                {
+                    Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+                    
+                    byte[] fileBytes = File.ReadAllBytes(_configPath);
+                    string fileContent;
+                    try
+                    {
+                        fileContent = Encoding.GetEncoding(932).GetString(fileBytes);
+                    }
+                    catch
+                    {
+                        fileContent = Encoding.UTF8.GetString(fileBytes);
+                    }
+
+                    fileContent = fileContent.Replace("\uFEFF", "").Replace("\u200B", "");
+
+                    string currentSection = "";
+                    string rawPgConnStr = "";
+                    string rawSqlConnStr = "";
+
+                    var lines = fileContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+
+                    foreach (var rawLine in lines)
+                    {
+                        string line = rawLine.Trim();
+                        if (string.IsNullOrEmpty(line) || line.StartsWith(";") || line.StartsWith("#"))
+                            continue;
+
+                        if (line.StartsWith("[") && line.EndsWith("]"))
+                        {
+                            currentSection = line.Substring(1, line.Length - 2).Trim();
+                            continue;
+                        }
+
+                        if (line.StartsWith("ConnStr", StringComparison.OrdinalIgnoreCase))
+                        {
+                            int eqIndex = line.IndexOf('=');
+                            if (eqIndex >= 0)
+                            {
+                                string val = line.Substring(eqIndex + 1).Trim();
+                                if ((val.StartsWith("\"") && val.EndsWith("\"")) || (val.StartsWith("'") && val.EndsWith("'")))
+                                {
+                                    val = val.Substring(1, val.Length - 2);
+                                }
+
+                                if (currentSection.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    rawPgConnStr = val;
+                                }
+                                else if (currentSection.Equals("SQLServer", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    rawSqlConnStr = val;
+                                }
+                            }
+                        }
+                    }
+
+                    // PostgreSQL 接続文字列の構築とキャッシュ
+                    if (!string.IsNullOrEmpty(rawPgConnStr))
+                    {
+                        var server = ExtractParam(rawPgConnStr, "Server");
+                        var port = ExtractParam(rawPgConnStr, "Port", "5432");
+                        var database = ExtractParam(rawPgConnStr, "Database");
+                        var uid = ExtractParam(rawPgConnStr, "Uid");
+                        var pwd = ExtractParam(rawPgConnStr, "Pwd");
+
+                        _cachedPostgresConnStr = $"Host={server};Port={port};Database={database};Username={uid};Password={pwd};Timeout=3;";
+                    }
+
+                    // SQLServer 接続文字列の構築とキャッシュ
+                    if (!string.IsNullOrEmpty(rawSqlConnStr))
+                    {
+                        var dataSource = ExtractParam(rawSqlConnStr, "Data Source");
+                        var initialCatalog = ExtractParam(rawSqlConnStr, "Initial Catalog");
+                        var userId = ExtractParam(rawSqlConnStr, "User ID");
+                        var password = ExtractParam(rawSqlConnStr, "Password");
+
+                        _cachedSqlServerConnStr = $"Server={dataSource};Database={initialCatalog};User Id={userId};Password={password};Connection Timeout=3;TrustServerCertificate=true;";
+                    }
+
+                    _logger.LogInformation("設定ファイルの初回読み込みおよびキャッシュ化が完了しました。");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "接続文字列の読み込み中にエラーが発生しました（ファイル: {Path}）: {Message}", _configPath, ex.Message);
+                    throw;
+                }
+            }
+        }
+
+        private string GetConnectionString(string name)
+        {
+            // 2回目以降はファイルへアクセスせず、メモリ上のキャッシュを返す
+            if (name == "PostgresConnection")
+            {
+                if (string.IsNullOrEmpty(_cachedPostgresConnStr))
+                    throw new InvalidOperationException("PostgreSQLの接続文字列がキャッシュされていません。");
+                return _cachedPostgresConnStr;
+            }
+            else if (name == "SqlServerConnection")
+            {
+                if (string.IsNullOrEmpty(_cachedSqlServerConnStr))
+                    throw new InvalidOperationException("SQLServerの接続文字列がキャッシュされていません。");
+                return _cachedSqlServerConnStr;
+            }
+
+            throw new ArgumentException($"不明な接続名です: {name}");
+        }
+
+        private string ExtractParam(string connStr, string key, string defaultValue = "")
+        {
+            var pattern = $@"(?:^|;)\s*{key}\s*=\s*([^;]+)";
+            var match = Regex.Match(connStr, pattern, RegexOptions.IgnoreCase);
+            if (match.Success)
+            {
+                return match.Groups[1].Value.Trim();
+            }
+            return defaultValue;
+        }
+
+        private void CreateDefaultConfigFile(string path) { }
+
+        public IDbConnection CreateSqlServerConnection()
+        {
+            var connStr = GetConnectionString("SqlServerConnection");
+            return new SqlConnection(connStr);
+        }
+
+        public IDbConnection CreatePostgresConnection()
+        {
+            var connStr = GetConnectionString("PostgresConnection");
+            return new NpgsqlConnection(connStr);
         }
     }
 
-    /// <inheritdoc />
-    public IDbConnection CreateSqlServerConnection()
+    public static class DbConnectionFactoryExtensions
     {
-        _logger.LogDebug("SQL Server 接続インスタンスを生成します。（参照設定: {Path}）", _xmlPath);
-        var connStr = GetConnectionString("SqlServerConnection");
-        return new SqlConnection(connStr);
-    }
-
-    /// <inheritdoc />
-    public IDbConnection CreatePostgresConnection()
-    {
-        _logger.LogDebug("PostgreSQL 接続インスタンスを生成します。（参照設定: {Path}）", _xmlPath);
-        var connStr = GetConnectionString("PostgresConnection");
-        return new NpgsqlConnection(connStr);
-    }
-}
-
-/// <summary>
-/// データベース接続およびトランザクション制御を安全に行うための拡張メソッド群
-/// </summary>
-public static class DbConnectionFactoryExtensions
-{
-    public static T ExecuteInPostgresTransaction<T>(
-        this IDbConnectionFactory factory, 
-        Func<IDbConnection, IDbTransaction, T> action,
-        ILogger? logger = null)
-    {
-        logger?.LogInformation("PostgreSQL トランザクション処理を開始します。");
-
-        using var conn = factory.CreatePostgresConnection();
-        conn.Open();
-        using var transaction = conn.BeginTransaction();
-        
-        try
+        public static T ExecuteInPostgresTransaction<T>(
+            this IDbConnectionFactory factory, 
+            Func<IDbConnection, IDbTransaction, T> action,
+            ILogger? logger = null)
         {
-            T result = action(conn, transaction);
-            transaction.Commit();
-            logger?.LogInformation("PostgreSQL トランザクションを正常にコミットしました。");
-            return result;
+            logger?.LogInformation("PostgreSQL トランザクション処理を開始します。");
+
+            using var conn = factory.CreatePostgresConnection();
+            conn.Open();
+            using var transaction = conn.BeginTransaction();
+            
+            try
+            {
+                T result = action(conn, transaction);
+                transaction.Commit();
+                logger?.LogInformation("PostgreSQL トランザクションを正常にコミットしました。");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                logger?.LogError(ex, "PostgreSQL トランザクション内でエラーが発生したため、ロールバックしました: {Message}", ex.Message);
+                throw;
+            }
         }
-        catch (Exception ex)
-        {
-            transaction.Rollback();
-            logger?.LogError(ex, "PostgreSQL トランザクション内でエラーが発生したため、ロールバックしました: {Message}", ex.Message);
-            throw;
-        }
-    }
 
-    public static void ExecuteInPostgresTransaction(
-        this IDbConnectionFactory factory, 
-        Action<IDbConnection, IDbTransaction> action,
-        ILogger? logger = null)
-    {
-        factory.ExecuteInPostgresTransaction((conn, tx) =>
+        public static void ExecuteInPostgresTransaction(
+            this IDbConnectionFactory factory, 
+            Action<IDbConnection, IDbTransaction> action,
+            ILogger? logger = null)
         {
-            action(conn, tx);
-            return true;
-        }, logger);
+            factory.ExecuteInPostgresTransaction((conn, tx) =>
+            {
+                action(conn, tx);
+                return true;
+            }, logger);
+        }
     }
 }
