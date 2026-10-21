@@ -15,7 +15,6 @@ Directory.CreateDirectory(localAppDataLogsDir);
 // Serilogによるファイル出力（詳細）およびコンソール出力（最小限）の設定
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
-    // コンソールには自作の最小限ログ（Information以上、かつMicrosoft等のフレームワークログを除外）のみ出力する
     .WriteTo.Logger(lc => lc
         .Filter.ByIncludingOnly(evt => 
             evt.Level >= LogEventLevel.Error || 
@@ -24,7 +23,6 @@ Log.Logger = new LoggerConfiguration()
             evt.MessageTemplate.Text.Contains("Webアプリケーション"))
         .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] {Message:lj}{NewLine}{Exception}")
     )
-    // ファイルには従来通りすべて出力し、shared: true で日付ごとに1ファイルへ追記
     .WriteTo.File(
         path: Path.Combine(localAppDataLogsDir, "api_debug_log-.txt"),
         rollingInterval: RollingInterval.Day,
@@ -50,13 +48,20 @@ Log.Information("読み込んだモード: [{Mode}] (ファイルパス: {Path})
 // --- 設定ファイルのパス決定部分 ---
 bool isHonban = mode.Equals("Honban", StringComparison.OrdinalIgnoreCase);
 
-// userProfile は上で既に宣言されているので、そのまま再利用します
-string localAppDataDir = Path.Combine(userProfile, "AppData", "Local", "COMPLEMENTARY");
-Directory.CreateDirectory(localAppDataDir);
+// テスト時はプロジェクト直下（あるいはビルド出力/ベースディレクトリ）の postgres_addin_Test.ini を指定
+string projectRootIniPath = Path.Combine(AppContext.BaseDirectory, "../../../postgres_addin_Test.ini");
+string fallbackBinIniPath = Path.Combine(AppContext.BaseDirectory, "postgres_addin_Test.ini");
 
-string configPath = isHonban
-    ? @"\\192.168.0.10\4.改善室\★改善室\A05.config\postgres_addin.ini"
-    : Path.Combine(localAppDataDir, "postgres_addin_Test.ini");
+string configPath;
+if (isHonban)
+{
+    configPath = @"\\192.168.0.10\4.改善室\★改善室\A05.config\postgres_addin.ini";
+}
+else
+{
+    // プロジェクト直下（ソースコード側）を優先し、なければbin側を探す
+    configPath = File.Exists(projectRootIniPath) ? Path.GetFullPath(projectRootIniPath) : fallbackBinIniPath;
+}
 
 Log.Information("探索中の設定ファイルパス: {Path}", configPath);
 Log.Information("ファイルの存在有無: {Exists}", File.Exists(configPath));
@@ -84,10 +89,8 @@ if (File.Exists(configPath))
         // BOMやゼロ幅スペース、CRLFの正規化
         fileContent = fileContent.Replace("\uFEFF", "").Replace("\u200B", "");
 
-        // 実際に読んでいるファイルの内容をログに出力
         Log.Information("=== [CONFIG FILE CONTENT START] ===\n{Content}\n=== [CONFIG FILE CONTENT END] ===", fileContent);
 
-        // --- 本番・テスト共通でINI形式としてパースする ---
         string currentSection = "";
         var lines = fileContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
         Log.Information("INIファイル総行数: {Count}", lines.Length);
@@ -175,6 +178,8 @@ builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
 builder.Services.AddTransient<SKL0001G01Repository>();
 builder.Services.AddScoped<SKL0101G01Repository>();
 builder.Services.AddScoped<CommonRepository>();
+builder.Services.AddScoped<SKL0104G01Repository>();
+builder.Services.AddScoped<BarcodeReaderMasterRepository>();
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();

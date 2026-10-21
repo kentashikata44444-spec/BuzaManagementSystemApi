@@ -1,7 +1,6 @@
 using System;
 using System.Data;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
@@ -27,7 +26,6 @@ namespace BuzaiManagementApi.Repositories
         private static string? _cachedSqlServerConnStr;
         private static readonly object _lockObj = new object();
 
-        // DbConnectionFactory.cs の該当部分を変更
         public DbConnectionFactory(ILogger<DbConnectionFactory> logger)
         {
             _logger = logger;
@@ -42,9 +40,9 @@ namespace BuzaiManagementApi.Repositories
 
             _isHonban = mode.Equals("Honban", StringComparison.OrdinalIgnoreCase);
 
-            // ユーザーの AppData\Local\COMPLEMENTARY パスを動的に構築
-            string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            string localAppDataDir = Path.Combine(userProfile, "AppData", "Local", "COMPLEMENTARY");
+            // テスト時はプロジェクト直下（またはアプリベースディレクトリ）の postgres_addin_Test.ini を指定
+            string projectRootIniPath = Path.Combine(AppContext.BaseDirectory, "../../../postgres_addin_Test.ini");
+            string fallbackBinIniPath = Path.Combine(AppContext.BaseDirectory, "postgres_addin_Test.ini");
 
             if (_isHonban)
             {
@@ -53,9 +51,7 @@ namespace BuzaiManagementApi.Repositories
             }
             else
             {
-                // Testモード時は AppData\Local\COMPLEMENTARY 配下を見るように変更
-                Directory.CreateDirectory(localAppDataDir);
-                _configPath = Path.Combine(localAppDataDir, "postgres_addin_Test.ini");
+                _configPath = File.Exists(projectRootIniPath) ? Path.GetFullPath(projectRootIniPath) : fallbackBinIniPath;
                 _logger.LogInformation("テストモード（Test）の接続設定ファイルを採用しました: {Path}", _configPath);
             }
 
@@ -66,29 +62,25 @@ namespace BuzaiManagementApi.Repositories
         {
             lock (_lockObj)
             {
-                // すでにキャッシュされている場合は再読み込みしない
                 if (!string.IsNullOrEmpty(_cachedPostgresConnStr) && !string.IsNullOrEmpty(_cachedSqlServerConnStr))
                 {
                     return;
                 }
 
+                // --- 1. SQL Server (TECHS) 接続文字列はテスト・本番問わず固定の安全な値を使用 ---
+                _cachedSqlServerConnStr = "Server=techs-sv;Database=TECHS6;Trusted_Connection=True;TrustServerCertificate=True;";
+                _logger.LogInformation("SQL Server接続文字列には固定値を使用します: {ConnStr}", _cachedSqlServerConnStr);
+
+                // --- 2. PostgreSQL は引き続き ini ファイルから読み込む ---
                 if (!File.Exists(_configPath))
                 {
-                    if (!_isHonban)
-                    {
-                        _logger.LogWarning("テスト設定ファイルが見つからないため、デフォルトファイルの自動作成を行います: {Path}", _configPath);
-                        CreateDefaultConfigFile(_configPath);
-                    }
-                    else
-                    {
-                        throw new FileNotFoundException($"本番用の設定ファイルが見つかりません: {_configPath}");
-                    }
+                    throw new FileNotFoundException($"設定ファイルが見つかりません: {_configPath}");
                 }
 
                 try
                 {
                     Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-                    
+
                     byte[] fileBytes = File.ReadAllBytes(_configPath);
                     string fileContent;
                     try
@@ -104,7 +96,6 @@ namespace BuzaiManagementApi.Repositories
 
                     string currentSection = "";
                     string rawPgConnStr = "";
-                    string rawSqlConnStr = "";
 
                     var lines = fileContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
 
@@ -120,24 +111,21 @@ namespace BuzaiManagementApi.Repositories
                             continue;
                         }
 
-                        if (line.StartsWith("ConnStr", StringComparison.OrdinalIgnoreCase))
+                        int eqIndex = line.IndexOf('=');
+                        if (eqIndex >= 0)
                         {
-                            int eqIndex = line.IndexOf('=');
-                            if (eqIndex >= 0)
+                            string key = line.Substring(0, eqIndex).Trim();
+                            string val = line.Substring(eqIndex + 1).Trim();
+                            if ((val.StartsWith("\"") && val.EndsWith("\"")) || (val.StartsWith("'") && val.EndsWith("'")))
                             {
-                                string val = line.Substring(eqIndex + 1).Trim();
-                                if ((val.StartsWith("\"") && val.EndsWith("\"")) || (val.StartsWith("'") && val.EndsWith("'")))
-                                {
-                                    val = val.Substring(1, val.Length - 2);
-                                }
+                                val = val.Substring(1, val.Length - 2);
+                            }
 
+                            if (key.Equals("ConnStr", StringComparison.OrdinalIgnoreCase))
+                            {
                                 if (currentSection.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
                                 {
                                     rawPgConnStr = val;
-                                }
-                                else if (currentSection.Equals("SQLServer", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    rawSqlConnStr = val;
                                 }
                             }
                         }
@@ -146,27 +134,16 @@ namespace BuzaiManagementApi.Repositories
                     // PostgreSQL 接続文字列の構築とキャッシュ
                     if (!string.IsNullOrEmpty(rawPgConnStr))
                     {
-                        var server = ExtractParam(rawPgConnStr, "Server");
-                        var port = ExtractParam(rawPgConnStr, "Port", "5432");
-                        var database = ExtractParam(rawPgConnStr, "Database");
-                        var uid = ExtractParam(rawPgConnStr, "Uid");
-                        var pwd = ExtractParam(rawPgConnStr, "Pwd");
+                        var server = ExtractParam(rawPgConnStr, new[] { "Server", "Host" });
+                        var port = ExtractParam(rawPgConnStr, new[] { "Port" }, "5432");
+                        var database = ExtractParam(rawPgConnStr, new[] { "Database", "Initial Catalog" });
+                        var uidVal = ExtractParam(rawPgConnStr, new[] { "Uid", "Username", "User ID" });
+                        var pwd = ExtractParam(rawPgConnStr, new[] { "Pwd", "Password" });
 
-                        _cachedPostgresConnStr = $"Host={server};Port={port};Database={database};Username={uid};Password={pwd};Timeout=3;";
+                        _cachedPostgresConnStr = $"Host={server};Port={port};Database={database};Username={uidVal};Password={pwd};Timeout=3;";
                     }
 
-                    // SQLServer 接続文字列の構築とキャッシュ
-                    if (!string.IsNullOrEmpty(rawSqlConnStr))
-                    {
-                        var dataSource = ExtractParam(rawSqlConnStr, "Data Source");
-                        var initialCatalog = ExtractParam(rawSqlConnStr, "Initial Catalog");
-                        var userId = ExtractParam(rawSqlConnStr, "User ID");
-                        var password = ExtractParam(rawSqlConnStr, "Password");
-
-                        _cachedSqlServerConnStr = $"Server={dataSource};Database={initialCatalog};User Id={userId};Password={password};Connection Timeout=3;TrustServerCertificate=true;";
-                    }
-
-                    _logger.LogInformation("設定ファイルの初回読み込みおよびキャッシュ化が完了しました。");
+                    _logger.LogInformation("設定ファイルからの PostgreSQL 接続文字列の読み込みおよびキャッシュ化が完了しました。");
                 }
                 catch (Exception ex)
                 {
@@ -178,7 +155,6 @@ namespace BuzaiManagementApi.Repositories
 
         private string GetConnectionString(string name)
         {
-            // 2回目以降はファイルへアクセスせず、メモリ上のキャッシュを返す
             if (name == "PostgresConnection")
             {
                 if (string.IsNullOrEmpty(_cachedPostgresConnStr))
@@ -195,18 +171,19 @@ namespace BuzaiManagementApi.Repositories
             throw new ArgumentException($"不明な接続名です: {name}");
         }
 
-        private string ExtractParam(string connStr, string key, string defaultValue = "")
+        private string ExtractParam(string connStr, string[] keys, string defaultValue = "")
         {
-            var pattern = $@"(?:^|;)\s*{key}\s*=\s*([^;]+)";
-            var match = Regex.Match(connStr, pattern, RegexOptions.IgnoreCase);
-            if (match.Success)
+            foreach (var key in keys)
             {
-                return match.Groups[1].Value.Trim();
+                var pattern = $@"(?:^|;)\s*{key}\s*=\s*([^;]+)";
+                var match = Regex.Match(connStr, pattern, RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    return match.Groups[1].Value.Trim();
+                }
             }
             return defaultValue;
         }
-
-        private void CreateDefaultConfigFile(string path) { }
 
         public IDbConnection CreateSqlServerConnection()
         {
@@ -233,7 +210,7 @@ namespace BuzaiManagementApi.Repositories
             using var conn = factory.CreatePostgresConnection();
             conn.Open();
             using var transaction = conn.BeginTransaction();
-            
+
             try
             {
                 T result = action(conn, transaction);
