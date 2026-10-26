@@ -177,6 +177,7 @@ builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
 
 builder.Services.AddTransient<SKL0001G01Repository>();
 builder.Services.AddScoped<SKL0101G01Repository>();
+builder.Services.AddScoped<SKL0110G01Repository>();
 builder.Services.AddScoped<CommonRepository>();
 builder.Services.AddScoped<SKL0104G01Repository>();
 builder.Services.AddScoped<BarcodeReaderMasterRepository>();

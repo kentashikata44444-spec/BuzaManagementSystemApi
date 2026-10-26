@@ -83,6 +83,9 @@ namespace BuzaiManagementApi.Controllers
 
                 var request = JsonSerializer.Deserialize<RegisterRequestModel>(rawJson, options);
 
+                Log.Information("デシリアライズ詳細確認 -> HokanBoxCd='{BoxCd}', HokanBoxMeisho='{BoxMei}', ShobunruiCode='{ShoCd}', ShobunruiMeisho='{ShoMei}'", 
+                request?.HokanBoxCd, request?.HokanBoxMeisho, request?.ShobunruiCode, request?.ShobunruiMeisho);
+
                 if (request == null)
                 {
                     return BadRequest(new { success = false, message = "リクエストデータの解析に失敗しました" });
@@ -126,11 +129,11 @@ namespace BuzaiManagementApi.Controllers
                 string hinmei = buhinInfo.Hinmei ?? "";
                 string katashiki = buhinInfo.KoshikiZuhyo ?? "";
                 decimal tehaiSu = buhinInfo.TehaiSu;
-                string tehaiTaniMei = buhinInfo.TehaiTaniMei ?? "個";
+                string tehaiTaniMei = buhinInfo.TehaiTaniMei ?? "";
 
                 // 5. Fe工場製番とSeqの切り出し
                 string feKojoSeiban = searchSeihinBango;
-                string feSeq = hinban ?? "0001";
+                string feSeq = hinban ?? "";
                 
                 // 6. 現品管理番号の採番
                 var (genpkanribango, status) = await _repository.GetSaibanCodeAsync("SL現品管理番号", "KN", request.UserCd);
@@ -202,6 +205,7 @@ namespace BuzaiManagementApi.Controllers
             {
                 bool success = await _repository.DeleteDataAsync(
                     request.SeihinBango, 
+                    request.DenpyoBango, // ← ここに追加
                     request.HokanBoxCd, 
                     request.HokanShizaiCd
                 );

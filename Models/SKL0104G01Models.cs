@@ -91,7 +91,7 @@ namespace BuzaiManagementApi.Models
         public string ShobunruiMeisho { get; set; } = string.Empty;
 
         [JsonPropertyName("KONKAISHIKYUSU")]
-        public int KonkaiShikyuSu { get; set; }
+        public decimal KonkaiShikyuSu { get; set; }
 
         [JsonPropertyName("USERCD")]
         public string UserCd { get; set; } = string.Empty;
@@ -102,7 +102,7 @@ namespace BuzaiManagementApi.Models
     // 削除リクエストモデル
     public class DeleteRequestModel
     {
-        public string Genpkanribango { get; set; } = string.Empty;
+        public string DenpyoBango { get; set; } = string.Empty;
         public string SeihinBango { get; set; } = string.Empty;
         public string HokanBoxCd { get; set; } = string.Empty;
         public string HokanShizaiCd { get; set; } = string.Empty;

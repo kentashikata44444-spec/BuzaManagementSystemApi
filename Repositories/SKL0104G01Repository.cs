@@ -293,7 +293,7 @@ namespace BuzaiManagementApi.Repositories
             string denpyoShubetsuCd, string denpyoBango, string seihinBango, 
             string buhinKanriNo, string hokanBoxCd, string hokanBoxMeisho,
             string hokanShizaiCd, string hokanShizaiMeisho,
-            int konkaiShikyuSu, string userCd, string genpkanribango,
+            decimal konkaiShikyuSu, string userCd, string genpkanribango,
             string feKojoSeiban, string feSeq, string hinban, string hinmei, 
             string katashiki, string tehaiTaniMei, decimal tehaiSu, decimal shikyuruiRuisekiSu,
             string hinbanGrpCd, string hinbanGrpNm, string zuban, 
@@ -303,6 +303,13 @@ namespace BuzaiManagementApi.Repositories
             string seihinHinmei, 
             string kinkyuKbn)
         {
+
+            // ★ここで空文字や空白だけのものを強制的に null に変換する
+            string? dbHokanBoxCd = string.IsNullOrWhiteSpace(hokanBoxCd) ? null : hokanBoxCd;
+            string? dbHokanBoxMeisho = string.IsNullOrWhiteSpace(hokanBoxMeisho) ? null : hokanBoxMeisho;
+            string? dbHokanShizaiCd = string.IsNullOrWhiteSpace(hokanShizaiCd) ? null : hokanShizaiCd;
+            string? dbHokanShizaiMeisho = string.IsNullOrWhiteSpace(hokanShizaiMeisho) ? null : hokanShizaiMeisho;
+            
             Log.Information("=== RegisterDataAsync トランザクション処理開始 ===");
             Log.Information("登録パラメータ -> seihinBango={SeihinBango}, denpyoBango={DenpyoBango}, genpkanribango={Genpkanribango}, konkaiShikyuSu={KonkaiShikyuSu}, kinkyuKbn={KinkyuKbn}", 
                 seihinBango, denpyoBango, genpkanribango, konkaiShikyuSu, kinkyuKbn);
@@ -341,7 +348,7 @@ namespace BuzaiManagementApi.Repositories
                         (
                             @SeihinBango, @Seiban, @JuchuNo, @SeihinSu, 
                             @SeihinBunCd, @SeihinBunNm, @SeihinHinmei, 
-                            @NonyuCd, @NonyuNm, @TokuiCd, @TokuiNm, 
+                            @TokuiCd, @TokuiNm, @NonyuCd, @NonyuNm,  
                             CURRENT_TIMESTAMP, @UserCd, '1'
                         );";
                     
@@ -380,6 +387,9 @@ namespace BuzaiManagementApi.Repositories
 
                 // ④ 部材所在明細情報登録
                 Log.Information("【登録Step 3】部材所在明細情報(SLT_BUZAISHOZAI_B) INSERT実行");
+
+                Log.Information("リポジトリ登録直前確認 -> HokanBoxCd='{BoxCd}', HokanBoxMeisho='{BoxMei}', HokanShizaiCd='{ShizaiCd}', HokanShizaiMeisho='{ShizaiMei}'", 
+                hokanBoxCd, hokanBoxMeisho, hokanShizaiCd, hokanShizaiMeisho);
                 string insertDetail = @"
                     INSERT INTO ""COMPLEMENTARY"".""SLT_BUZAISHOZAI_B""
                     (
@@ -426,10 +436,11 @@ namespace BuzaiManagementApi.Repositories
                     DenpyoBango = denpyoBango, 
                     FeKojoSeiban = feKojoSeiban,
                     FeSeq = feSeq,
-                    HokanShizaiCd = hokanShizaiCd,
-                    HokanShizaiMeisho = hokanShizaiMeisho,
-                    HokanBoxCd = hokanBoxCd,
-                    HokanBoxMeisho = hokanBoxMeisho,
+                    // ★ここを修正（nullならデータベース側でNULLとして登録されます）
+                    HokanShizaiCd = dbHokanShizaiCd,
+                    HokanShizaiMeisho = dbHokanShizaiMeisho,
+                    HokanBoxCd = dbHokanBoxCd,
+                    HokanBoxMeisho = dbHokanBoxMeisho,
                     KinkyuKbn = kinkyuKbn,
                     UserCd = userCd 
                 }, transaction);
@@ -461,30 +472,32 @@ namespace BuzaiManagementApi.Repositories
                         ""SHIKYUYOTEISU"", ""SHIKYUSU"", ""TANICD"", ""TANIMEI"", 
                         ""NONYUJOKYOKBN"", ""NONYUJOKYO"", ""HINMEI"", ""KATASHIKI"", 
                         ""BUHINKANRIBANGO"", ""SHIWAKEBI"", ""DENPYONO"", 
-                        ""TOROKUDTM"", ""TOROKUSHACD"", ""JOTAIKBN""
+                        ""TOROKUDTM"", ""TOROKUSHACD"", 
+                        ""KOSHINDTM"", ""KOSHINSHACD"", ""JOTAIKBN""
                     )
                     VALUES 
                     (
-                        @FeKojoSeiban, @FeSeq, @NonyuSeq, @SeihinBango, '1', 
+                        @FeKojoSeiban, @FeSeq, @NonyuSeq, @SeihinBango, @FeSeq, 
                         @TehaiSu, @KonkaiShikyuSu, 
                         CASE WHEN @TehaiTaniMei = '面' THEN '01'
-                             WHEN @TehaiTaniMei = '個' THEN '02'
-                             WHEN @TehaiTaniMei = '式' THEN '03'
-                             WHEN @TehaiTaniMei = 'ST' THEN '04'
-                             WHEN @TehaiTaniMei = '台' THEN '05'
-                             WHEN @TehaiTaniMei = 'm'  THEN '06'
-                             WHEN @TehaiTaniMei = '枚' THEN '07'
-                             WHEN @TehaiTaniMei = '本' THEN '08'
-                             WHEN @TehaiTaniMei = '箱' THEN '09'
-                             WHEN @TehaiTaniMei = '巻' THEN '10'
-                             WHEN @TehaiTaniMei = '缶' THEN '11'
-                             WHEN @TehaiTaniMei = '双' THEN '12'
-                             WHEN @TehaiTaniMei = '袋' THEN '13'
-                             ELSE '' END,
+                            WHEN @TehaiTaniMei = '個' THEN '02'
+                            WHEN @TehaiTaniMei = '式' THEN '03'
+                            WHEN @TehaiTaniMei = 'ST' THEN '04'
+                            WHEN @TehaiTaniMei = '台' THEN '05'
+                            WHEN @TehaiTaniMei = 'm'  THEN '06'
+                            WHEN @TehaiTaniMei = '枚' THEN '07'
+                            WHEN @TehaiTaniMei = '本' THEN '08'
+                            WHEN @TehaiTaniMei = '箱' THEN '09'
+                            WHEN @TehaiTaniMei = '巻' THEN '10'
+                            WHEN @TehaiTaniMei = '缶' THEN '11'
+                            WHEN @TehaiTaniMei = '双' THEN '12'
+                            WHEN @TehaiTaniMei = '袋' THEN '13'
+                            ELSE '' END,
                         @TehaiTaniMei,
                         @NonyuJokyoKbn, @NonyuJokyo, @Hinmei, @Katashiki, 
                         @BuhinKanriNo, CURRENT_DATE, @DenpyoBango, 
-                        CURRENT_TIMESTAMP, @UserCd, '1'
+                        CURRENT_TIMESTAMP, @UserCd, 
+                        @KoshinDtm, @KoshinShaCd, '1'
                     );";
 
                 await connection.ExecuteAsync(insertFeSikyu, new { 
@@ -501,7 +514,9 @@ namespace BuzaiManagementApi.Repositories
                     Katashiki = katashiki, 
                     BuhinKanriNo = dbBuhinKanriNo, 
                     DenpyoBango = denpyoBango, 
-                    UserCd = userCd 
+                    UserCd = userCd,
+                    KoshinDtm = (DateTime?)null, // 新規登録時はNULLを渡す
+                    KoshinShaCd = (string?)null   // 新規登録時はNULLを渡す
                 }, transaction);
                 Log.Information("Fe支給品情報INSERT成功");
 
@@ -569,10 +584,10 @@ namespace BuzaiManagementApi.Repositories
         }
 
         // 9. 削除処理
-        public async Task<bool> DeleteDataAsync(string seihinBango, string? hokanBoxCd, string? hokanShizaiCd)
+        public async Task<bool> DeleteDataAsync(string seihinBango, string denpyoBango, string? hokanBoxCd, string? hokanShizaiCd)
         {
             Log.Information("=== DeleteDataAsync 処理開始 ===");
-            Log.Information("削除パラメータ -> seihinBango={SeihinBango}, hokanBoxCd={HokanBoxCd}, hokanShizaiCd={HokanShizaiCd}", seihinBango, hokanBoxCd, hokanShizaiCd);
+            Log.Information("削除パラメータ -> seihinBango={SeihinBango}, denpyoBango={DenpyoBango}, hokanBoxCd={HokanBoxCd}, hokanShizaiCd={HokanShizaiCd}", seihinBango, denpyoBango, hokanBoxCd, hokanShizaiCd);
 
             using var connection = _connectionFactory.CreatePostgresConnection();
             if (connection.State != ConnectionState.Open)
@@ -581,13 +596,19 @@ namespace BuzaiManagementApi.Repositories
             using var transaction = connection.BeginTransaction();
             try
             {
-                // 1. 指定された製品No.の明細を削除
-                Log.Information("【削除Step 1】部材所在明細(SLT_BUZAISHOZAI_B)のDELETE実行: seihinBango={SeihinBango}", seihinBango);
+                // 1. 画面の伝票番号(denpyoBango)を品番(HINBAN)に紐づけて現品管理番号を特定し、1件削除
+                Log.Information("【削除Step 1】部材所在明細(SLT_BUZAISHOZAI_B)のDELETE実行");
                 string deleteDetailQuery = @"
                     DELETE FROM ""COMPLEMENTARY"".""SLT_BUZAISHOZAI_B"" 
-                    WHERE ""SEIHINBANGO"" = @SeihinBango 
-                      AND ""JOTAIKBN"" = '1'";
-                await connection.ExecuteAsync(deleteDetailQuery, new { SeihinBango = seihinBango }, transaction);
+                    WHERE ""GENPKANRIBANGO"" IN (
+                        SELECT ""GENPKANRIBANGO"" 
+                        FROM ""COMPLEMENTARY"".""SLT_BUZAISHOZAI_B"" 
+                        WHERE ""SEIHINBANGO"" = @SeihinBango 
+                          AND ""HINBAN"" = @DenpyoBango 
+                          AND ""JOTAIKBN"" = '1'
+                        LIMIT 1
+                    )";
+                await connection.ExecuteAsync(deleteDetailQuery, new { SeihinBango = seihinBango, DenpyoBango = denpyoBango }, transaction);
 
                 // 2. 残りの明細件数を取得
                 Log.Information("【削除Step 2】残りの明細件数確認");
