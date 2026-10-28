@@ -17,13 +17,16 @@ builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 // SKL0001G01 用リポジトリの登録
 builder.Services.AddTransient<SKL0001G01Repository>();
+
 // ★【追加】 WorkerクラスをホステッドサービスとしてDIコンテナに登録
 builder.Services.AddHostedService<Worker>();
+
 // コントローラー機能の有効化
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
+// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapibuilder.Services.AddOpenApi();
 builder.Services.AddOpenApi();
-builder.Services.AddOpenApi();
+
 // ★ 【追加】 CommonRepository をDIコンテナに登録する
 builder.Services.AddScoped<CommonRepository>();
 
@@ -33,6 +36,22 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+
+    // ==========================================
+    // ★追加：開発（テスト）環境のときだけリクエストをコンソールに出力する
+    // ==========================================
+    app.Use(async (context, next) =>
+    {
+        var remoteIp = context.Connection.RemoteIpAddress?.ToString();
+        var method = context.Request.Method;
+        var path = context.Request.Path;
+
+        Console.WriteLine($"[DEVログ] 受信: {remoteIp} | {method} {path}");
+
+        await next();
+
+        Console.WriteLine($"[DEVログ] 応答: {path} (ステータス: {context.Response.StatusCode})");
+    });
 }
 
 app.UseHttpsRedirection();

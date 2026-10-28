@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BuzaiManagementApi")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+26c985117be358df0ffc58f3cd7533ad80b125f9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+af20731415ed07042ca346637c91c930720e1b56")]
 [assembly: System.Reflection.AssemblyProductAttribute("BuzaiManagementApi")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BuzaiManagementApi")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -388,10 +388,10 @@ C:\Users\y-aimi\source\repos\BuzaManagementSystemApi\BuzaiManagementApi\obj\Debu
 C:\Users\y-aimi\source\repos\BuzaManagementSystemApi\BuzaiManagementApi\obj\Debug\net10.0\win-x64\staticwebassets.development.json
 C:\Users\y-aimi\source\repos\BuzaManagementSystemApi\BuzaiManagementApi\obj\Debug\net10.0\win-x64\staticwebassets.build.endpoints.json
 C:\Users\y-aimi\source\repos\BuzaManagementSystemApi\BuzaiManagementApi\obj\Debug\net10.0\win-x64\swae.build.ex.cache
-C:\Users\y-aimi\source\repos\BuzaManagementSystemApi\BuzaiManagementApi\obj\Debug\net10.0\win-x64\staticwebassets.upToDateCheck.txt
 C:\Users\y-aimi\source\repos\BuzaManagementSystemApi\BuzaiManagementApi\obj\Debug\net10.0\win-x64\BuzaiMan.8D0E37F0.Up2Date
 C:\Users\y-aimi\source\repos\BuzaManagementSystemApi\BuzaiManagementApi\obj\Debug\net10.0\win-x64\BuzaiManagementApi.dll
 C:\Users\y-aimi\source\repos\BuzaManagementSystemApi\BuzaiManagementApi\obj\Debug\net10.0\win-x64\refint\BuzaiManagementApi.dll
 C:\Users\y-aimi\source\repos\BuzaManagementSystemApi\BuzaiManagementApi\obj\Debug\net10.0\win-x64\BuzaiManagementApi.pdb
 C:\Users\y-aimi\source\repos\BuzaManagementSystemApi\BuzaiManagementApi\obj\Debug\net10.0\win-x64\BuzaiManagementApi.genruntimeconfig.cache
 C:\Users\y-aimi\source\repos\BuzaManagementSystemApi\BuzaiManagementApi\obj\Debug\net10.0\win-x64\ref\BuzaiManagementApi.dll
+C:\Users\y-aimi\source\repos\BuzaManagementSystemApi\BuzaiManagementApi\obj\Debug\net10.0\win-x64\staticwebassets.upToDateCheck.txt
