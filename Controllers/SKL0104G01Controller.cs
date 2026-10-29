@@ -83,6 +83,9 @@ namespace BuzaiManagementApi.Controllers
 
                 var request = JsonSerializer.Deserialize<RegisterRequestModel>(rawJson, options);
 
+                Log.Information("デシリアライズ詳細確認 -> HokanBoxCd='{BoxCd}', HokanBoxMeisho='{BoxMei}', ShobunruiCode='{ShoCd}', ShobunruiMeisho='{ShoMei}'", 
+                request?.HokanBoxCd, request?.HokanBoxMeisho, request?.ShobunruiCode, request?.ShobunruiMeisho);
+
                 if (request == null)
                 {
                     return BadRequest(new { success = false, message = "リクエストデータの解析に失敗しました" });
@@ -126,11 +129,11 @@ namespace BuzaiManagementApi.Controllers
                 string hinmei = buhinInfo.Hinmei ?? "";
                 string katashiki = buhinInfo.KoshikiZuhyo ?? "";
                 decimal tehaiSu = buhinInfo.TehaiSu;
-                string tehaiTaniMei = buhinInfo.TehaiTaniMei ?? "個";
+                string tehaiTaniMei = buhinInfo.TehaiTaniMei ?? "";
 
                 // 5. Fe工場製番とSeqの切り出し
                 string feKojoSeiban = searchSeihinBango;
-                string feSeq = hinban ?? "0001";
+                string feSeq = hinban ?? "";
                 
                 // 6. 現品管理番号の採番
                 var (genpkanribango, status) = await _repository.GetSaibanCodeAsync("SL現品管理番号", "KN", request.UserCd);
@@ -142,12 +145,17 @@ namespace BuzaiManagementApi.Controllers
                 // Androidから送られてきた緊急品区分（なければ "1"）
                 string kinkyuKbn = !string.IsNullOrEmpty(request.KinkyuKbn) ? request.KinkyuKbn : "1";
 
-                // 7. 登録実行
-                var (isSuccess, errorMessage) = await _repository.RegisterDataAsync(
+                // 7. 登録実行（タプル型を明示して受け取る）
+// 7. 登録実行（タプル型を明示して受け取る）
+                (bool isSuccess, string? errorMessage) = await _repository.RegisterDataAsync(
                     denpyoShubetsuCd: request.DenpyoShubetsuCd,
                     denpyoBango: request.DenpyoBango,
                     seihinBango: buhinInfo?.SeihinBango ?? request.SeihinBango,
                     buhinKanriNo: buhinKanriNo,
+                    // ★ ここに保管エリアの引数を追加
+                    hokanEriaCd: request.HokanEriaCd,
+                    hokanEriaMeisho: request.HokanEriaMeisho,
+                    
                     hokanBoxCd: finalBoxCd,
                     hokanBoxMeisho: finalBoxMeisho,
                     hokanShizaiCd: finalShizaiCd,
@@ -176,7 +184,8 @@ namespace BuzaiManagementApi.Controllers
                     tokuiCd: buhinInfo?.TokuisakiCode ?? "",
                     tokuiNm: buhinInfo?.TokuisakiSeishikiMei ?? "",
                     seihinHinmei: hinmei,
-                    kinkyuKbn: kinkyuKbn // ← ここに最後の引数を追加！
+                    kinkyuKbn: kinkyuKbn,
+                    shiwakeTntMei: request.ShiwakeTntMei ?? ""
                 );
 
                 if (isSuccess)
@@ -202,6 +211,7 @@ namespace BuzaiManagementApi.Controllers
             {
                 bool success = await _repository.DeleteDataAsync(
                     request.SeihinBango, 
+                    request.DenpyoBango, // ← ここに追加
                     request.HokanBoxCd, 
                     request.HokanShizaiCd
                 );

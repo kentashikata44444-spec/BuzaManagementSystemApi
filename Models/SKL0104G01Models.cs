@@ -66,6 +66,13 @@ namespace BuzaiManagementApi.Models
         [JsonPropertyName("BUHINKANRINO")]
         public string BuhinKanriNo { get; set; } = string.Empty;
 
+        // ★ 保管エリアコード・名称を追加
+        [JsonPropertyName("HOKANERIACD")]
+        public string? HokanEriaCd { get; set; }
+
+        [JsonPropertyName("HOKANERIAMEISHO")]
+        public string? HokanEriaMeisho { get; set; }
+
         [JsonPropertyName("HOKANBOXCD")]
         public string HokanBoxCd { get; set; } = string.Empty;
 
@@ -91,18 +98,23 @@ namespace BuzaiManagementApi.Models
         public string ShobunruiMeisho { get; set; } = string.Empty;
 
         [JsonPropertyName("KONKAISHIKYUSU")]
-        public int KonkaiShikyuSu { get; set; }
+        public decimal KonkaiShikyuSu { get; set; }
 
         [JsonPropertyName("USERCD")]
         public string UserCd { get; set; } = string.Empty;
 
+        [JsonPropertyName("KINKYUKBN")]
         public string? KinkyuKbn { get; set; }
+
+        // 業務担当名（仕分担当名）を受け取るプロパティ
+        [JsonPropertyName("SHIWAKETNTMEI")]
+        public string? ShiwakeTntMei { get; set; }
     }
 
     // 削除リクエストモデル
     public class DeleteRequestModel
     {
-        public string Genpkanribango { get; set; } = string.Empty;
+        public string DenpyoBango { get; set; } = string.Empty;
         public string SeihinBango { get; set; } = string.Empty;
         public string HokanBoxCd { get; set; } = string.Empty;
         public string HokanShizaiCd { get; set; } = string.Empty;
