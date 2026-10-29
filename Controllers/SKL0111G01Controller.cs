@@ -1,129 +1,130 @@
 using System;
-using System.Linq; // ← 追加
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using BuzaiManagementApi.Models;
 using BuzaiManagementApi.Repositories;
+using BuzaiManagementApi.Models;
 
 namespace BuzaiManagementApi.Controllers
 {
     [ApiController]
-    [Route("api/skl0110")]
-    public class SKL0110G01Controller : ControllerBase
+    [Route("api/skl0111")] // ★ Android側のパス (api/skl0111) に合わせる
+    public class SKL0111G01Controller : ControllerBase
     {
-        private readonly SKL0110G01Repository _repository;
-        private readonly ILogger<SKL0110G01Controller> _logger;
+        private readonly SKL0111G01Repository _repository;
+        private readonly ILogger<SKL0111G01Controller> _logger;
 
-        public SKL0110G01Controller(SKL0110G01Repository repository, ILogger<SKL0110G01Controller> logger)
+        public SKL0111G01Controller(SKL0111G01Repository repository, ILogger<SKL0111G01Controller> logger)
         {
             _repository = repository;
             _logger = logger;
         }
 
         /// <summary>
-        /// 初期表示時の保管情報および対象データの取得
+        /// 1. 初期データ取得 / 対象データ取得
+        /// 対応するAndroidパス: GET /api/skl0111/meisai?seihinBango=...
         /// </summary>
-        [HttpGet("hokan-info")]
-        public async Task<IActionResult> GetHokanInfo([FromQuery] string seihinBango)
+        [HttpGet("meisai")]
+        public async Task<IActionResult> GetMeisaiInfo([FromQuery] string seihinBango)
         {
-            _logger.LogInformation("API GetHokanInfo 呼び出し: seihinBango={SeihinBango}", seihinBango);
             try
             {
-                if (string.IsNullOrEmpty(seihinBango))
+                _logger.LogInformation("SKL0111G01 GetMeisaiInfo 開始: seihinBango={SeihinBango}", seihinBango);
+                var list = await _repository.GetHokanShizaiTargetAsync(seihinBango);
+                return Ok(new { success = true, data = list });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GetMeisaiInfo エラー: {Message}", ex.Message);
+                return StatusCode(500, new { success = false, message = "システムエラーが発生しました" });
+            }
+        }
+
+        /// <summary>
+        /// 2. 保管エリアQRコード読み込み時チェック（ロケーション大分類マスタ検索 ＆ 使用情報確認）
+        /// 対応するAndroidパス: GET /api/skl0111/dai_master?daiCode=...
+        /// </summary>
+        [HttpGet("dai_master")]
+        public async Task<IActionResult> GetDaiMaster([FromQuery] string daiCode)
+        {
+            try
+            {
+                _logger.LogInformation("SKL0111G01 GetDaiMaster 開始: daiCode={DaiCode}", daiCode);
+
+                // ★ 修正: "DAI" のプレフィックスチェックを外し、空でないことのチェックに変更する
+                if (string.IsNullOrEmpty(daiCode))
                 {
-                    return BadRequest(new { success = false, message = "製品No.が指定されていません" });
+                    return BadRequest(new { success = false, message = "保管エリアが読み込まれていません" });
                 }
 
-                var targets = await _repository.GetHokanZaimuTargetAsync(seihinBango);
-                var targetList = targets.ToList(); // ← AsList() から ToList() に変更
-
-                if (targetList.Count == 0)
+                // 2. ロケーション大分類マスタ検索
+                var master = await _repository.GetRokeshoNdaiMasterAsync(daiCode);
+                if (master == null)
                 {
-                    _logger.LogWarning("保管資材確定対象データが存在しません: seihinBango={SeihinBango}", seihinBango);
-                    return Ok(new { success = false, message = "保管資材確定対象データが存在しません", count = 0 });
+                    return BadRequest(new { success = false, message = "読み込まれた保管エリアが存在しません" });
                 }
 
-                return Ok(new {
-                    success = true,
-                    count = targetList.Count,
-                    hokanBoxCd = targetList[0].HokanBoxCd,
-                    hokanBoxMeisho = targetList[0].HokanBoxMeisho
+                return Ok(new 
+                { 
+                    success = true, 
+                    sokoCd = master.SokoCd,
+                    sokoMeisho = master.SokoMeisho,
+                    hokanEriaCd = master.DaibunruiCd,
+                    hokanEriaMeisho = master.DaibunruiMeisho
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "API GetHokanInfo エラー: seihinBango={SeihinBango}", seihinBango);
-                return StatusCode(500, new { success = false, message = "システム管理者に問合せ願います" });
+                _logger.LogError(ex, "GetDaiMaster エラー: {Message}", ex.Message);
+                return StatusCode(500, new { success = false, message = "システムエラーが発生しました" });
             }
         }
 
-        /// <summary>
-        /// 中分類マスタ検索（保管資材コードの検証と名称取得）
-        /// </summary>
-        [HttpGet("master-chu")]
-        public async Task<IActionResult> GetChuMaster([FromQuery] string chubunruiCd)
-        {
-            _logger.LogInformation("API GetChuMaster 呼び出し: chubunruiCd={ChubunruiCd}", chubunruiCd);
-            try
-            {
-                if (string.IsNullOrEmpty(chubunruiCd))
-                {
-                    return BadRequest(new { success = false, message = "中分類コードが指定されていません" });
-                }
-
-                string? meisho = await _repository.GetChuMasterMeishoAsync(chubunruiCd);
-                if (string.IsNullOrEmpty(meisho))
-                {
-                    return Ok(new { success = false, message = "読み込まれた保管資材がマスタに存在しません\n確認してください" });
-                }
-
-                return Ok(new { success = true, chubunruiMeisho = meisho });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "API GetChuMaster エラー");
-                return StatusCode(500, new { success = false, message = "システム管理者に問合せ願います" });
-            }
-        }
-
-        /// <summary>
-        /// 保管エリア・保管資材の確定登録処理（更新＆登録トランザクション）
+/// <summary>
+        /// 3. 保管資材QRコード読み込み時処理（存在チェック、明細更新、エリア使用情報登録）
+        /// 対応するAndroidパス: POST /api/skl0111/register
         /// </summary>
         [HttpPost("register")]
-        public async Task<IActionResult> RegisterHokanArea([FromBody] SKL0110RegisterRequestModel request)
+        public async Task<IActionResult> RegisterHokanArea([FromBody] MaterialScanRequestModel request)
         {
-            _logger.LogInformation("API RegisterHokanArea 呼び出し: seihinBango={SeihinBango}, hokanBoxCd={HokanBoxCd}, hokanShizaiCd={HokanShizaiCd}", 
-                request.SeihinBango, request.HokanBoxCd, request.HokanShizaiCd);
-
             try
             {
-                string? usingSeihinBango = await _repository.GetHokanBoxSiyoJohoAsync(request.HokanBoxCd);
-                if (!string.IsNullOrEmpty(usingSeihinBango) && usingSeihinBango != request.SeihinBango)
+                _logger.LogInformation("SKL0111G01 RegisterHokanArea 開始: ShizaiCd={ShizaiCd}", request.HokanShizaiCd);
+
+                // 1. 部材所在明細情報に該当資材が存在するか確認
+                bool exists = await _repository.CheckBuzaishozaiShizaiExistsAsync(request.SeihinBango, request.HokanShizaiCd);
+                if (!exists)
                 {
-                    return Ok(new { success = false, message = "読み込まれた保管BOXが製品No.内に存在しません\n保管BOXを確認してください" });
+                    // 対象外の場合もOkの形（success = false）で返すことでメッセージを確実に表示できます
+                    return Ok(new { success = false, message = "読み込まれた保管資材は、対象外です" });
                 }
 
-                string? shizaiMeisho = await _repository.GetChuMasterMeishoAsync(request.HokanShizaiCd);
-                if (string.IsNullOrEmpty(shizaiMeisho))
-                {
-                    return Ok(new { success = false, message = "読み込まれた保管資材がマスタに存在しません\n確認してください" });
-                }
-
-                var (isSuccess, errorMessage) = await _repository.UpdateAndRegisterHokanAreaAsync(
-                    request.SeihinBango, request.HokanBoxCd, request.HokanShizaiCd, shizaiMeisho, request.UserCd);
+                // 2. トランザクション実行（明細更新 ＆ エリア使用情報登録）
+                var (isSuccess, message) = await _repository.UpdateAreaAndRegisterHokanEriaAsync(
+                    request.SeihinBango,
+                    request.HokanShizaiCd,
+                    request.SokoCd,
+                    request.SokoMeisho,
+                    request.HokanEriaCd,
+                    request.HokanEriaMeisho,
+                    request.UserCd
+                );
 
                 if (!isSuccess)
                 {
-                    return Ok(new { success = false, message = errorMessage ?? "保管資材使用情報の登録に失敗しました\nシステム管理者に連絡してください" });
+                    // ★ 修正: BadRequest ではなく Ok で返すことで、Android側が詳細な message を受け取れるようにする
+                    return Ok(new { success = false, message = message });
                 }
 
-                return Ok(new { success = true, message = "保管エリアを確定しました" });
+                // 3. 更新後の最新ターゲット一覧を取得して返却
+                var updatedList = await _repository.GetHokanShizaiTargetAsync(request.SeihinBango);
+
+                return Ok(new { success = true, message = "登録完了しました", data = updatedList });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "API RegisterHokanArea エラー");
-                return StatusCode(500, new { success = false, message = "システム管理者に連絡してください" });
+                _logger.LogError(ex, "RegisterHokanArea エラー: {Message}", ex.Message);
+                return StatusCode(500, new { success = false, message = "システムエラーが発生しました" });
             }
         }
     }

@@ -145,12 +145,17 @@ namespace BuzaiManagementApi.Controllers
                 // Androidから送られてきた緊急品区分（なければ "1"）
                 string kinkyuKbn = !string.IsNullOrEmpty(request.KinkyuKbn) ? request.KinkyuKbn : "1";
 
-                // 7. 登録実行
-                var (isSuccess, errorMessage) = await _repository.RegisterDataAsync(
+                // 7. 登録実行（タプル型を明示して受け取る）
+// 7. 登録実行（タプル型を明示して受け取る）
+                (bool isSuccess, string? errorMessage) = await _repository.RegisterDataAsync(
                     denpyoShubetsuCd: request.DenpyoShubetsuCd,
                     denpyoBango: request.DenpyoBango,
                     seihinBango: buhinInfo?.SeihinBango ?? request.SeihinBango,
                     buhinKanriNo: buhinKanriNo,
+                    // ★ ここに保管エリアの引数を追加
+                    hokanEriaCd: request.HokanEriaCd,
+                    hokanEriaMeisho: request.HokanEriaMeisho,
+                    
                     hokanBoxCd: finalBoxCd,
                     hokanBoxMeisho: finalBoxMeisho,
                     hokanShizaiCd: finalShizaiCd,
@@ -179,7 +184,8 @@ namespace BuzaiManagementApi.Controllers
                     tokuiCd: buhinInfo?.TokuisakiCode ?? "",
                     tokuiNm: buhinInfo?.TokuisakiSeishikiMei ?? "",
                     seihinHinmei: hinmei,
-                    kinkyuKbn: kinkyuKbn // ← ここに最後の引数を追加！
+                    kinkyuKbn: kinkyuKbn,
+                    shiwakeTntMei: request.ShiwakeTntMei ?? ""
                 );
 
                 if (isSuccess)

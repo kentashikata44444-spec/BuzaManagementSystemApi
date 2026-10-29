@@ -291,7 +291,8 @@ namespace BuzaiManagementApi.Repositories
         // 8. 登録トランザクション実行
         public async Task<(bool IsSuccess, string? Message)> RegisterDataAsync(
             string denpyoShubetsuCd, string denpyoBango, string seihinBango, 
-            string buhinKanriNo, string hokanBoxCd, string hokanBoxMeisho,
+            string buhinKanriNo, string? hokanEriaCd, string? hokanEriaMeisho,
+            string hokanBoxCd, string hokanBoxMeisho,
             string hokanShizaiCd, string hokanShizaiMeisho,
             decimal konkaiShikyuSu, string userCd, string genpkanribango,
             string feKojoSeiban, string feSeq, string hinban, string hinmei, 
@@ -301,8 +302,13 @@ namespace BuzaiManagementApi.Repositories
             string seihinBunCd, string seihinBunNm, 
             string nonyuCd, string nonyuNm, string tokuiCd, string tokuiNm,
             string seihinHinmei, 
-            string kinkyuKbn)
+            string kinkyuKbn,
+            string shiwakeTntMei) // ★ 業務担当名（名称）の引数を追加
         {
+
+            // 保管エリア・BOX・資材のコード/名称の null 変換
+            string? dbHokanEriaCd = string.IsNullOrWhiteSpace(hokanEriaCd) ? null : hokanEriaCd;
+            string? dbHokanEriaMeisho = string.IsNullOrWhiteSpace(hokanEriaMeisho) ? null : hokanEriaMeisho;
 
             // ★ここで空文字や空白だけのものを強制的に null に変換する
             string? dbHokanBoxCd = string.IsNullOrWhiteSpace(hokanBoxCd) ? null : hokanBoxCd;
@@ -401,7 +407,7 @@ namespace BuzaiManagementApi.Repositories
                         ""SOKOCD"", ""SOKOMEISHO"", ""HOKANERIACD"", ""HOKANERIAMEISHO"",
                         ""HOKANSIZAICD"", ""HOKANSIZAIMEISHO"", ""HOKANBOXCD"", ""HOKANBOXMEISHO"",
                         ""HNKDENPBANGO"", ""KENSAIRIKBN"", ""KINKYUKBN"",
-                        ""SHIWAKETNTCD"", ""SHIWAKEBI"",
+                        ""SHIWAKETNTCD"", ""SHIWAKETNTMEI"", ""SHIWAKEBI"", -- ★ SHIWAKETNTMEI を追加
                         ""TOROKUDTM"", ""TOROKUSHACD"", ""JOTAIKBN""
                     )
                     VALUES
@@ -411,10 +417,10 @@ namespace BuzaiManagementApi.Repositories
                         @Katashiki, @BuhinKanriNo, @KonkaiShikyuSu, @TehaiTaniMei,
                         @TokuiCd, @TokuiNm, @DenpyoShubetsuCd, @DenpyoBango,
                         @FeKojoSeiban, @FeSeq, '00', '勝英産業',
-                        '', '', '', '',
+                        '', '', @HokanEriaCd, @HokanEriaMeisho,
                         @HokanShizaiCd, @HokanShizaiMeisho, @HokanBoxCd, @HokanBoxMeisho,
                         0, '3', @KinkyuKbn,
-                        @UserCd, CURRENT_DATE,
+                        @UserCd, @ShiwakeTntMei, CURRENT_DATE, -- ★ @ShiwakeTntMei を追加
                         CURRENT_TIMESTAMP, @UserCd, '1'
                     );";
 
@@ -436,13 +442,15 @@ namespace BuzaiManagementApi.Repositories
                     DenpyoBango = denpyoBango, 
                     FeKojoSeiban = feKojoSeiban,
                     FeSeq = feSeq,
-                    // ★ここを修正（nullならデータベース側でNULLとして登録されます）
+                    HokanEriaCd = dbHokanEriaCd,
+                    HokanEriaMeisho = dbHokanEriaMeisho,
                     HokanShizaiCd = dbHokanShizaiCd,
                     HokanShizaiMeisho = dbHokanShizaiMeisho,
                     HokanBoxCd = dbHokanBoxCd,
                     HokanBoxMeisho = dbHokanBoxMeisho,
                     KinkyuKbn = kinkyuKbn,
-                    UserCd = userCd 
+                    UserCd = userCd,
+                    ShiwakeTntMei = shiwakeTntMei // ★ パラメータを追加
                 }, transaction);
                 Log.Information("部材所在明細INSERT成功");
 
@@ -515,8 +523,8 @@ namespace BuzaiManagementApi.Repositories
                     BuhinKanriNo = dbBuhinKanriNo, 
                     DenpyoBango = denpyoBango, 
                     UserCd = userCd,
-                    KoshinDtm = (DateTime?)null, // 新規登録時はNULLを渡す
-                    KoshinShaCd = (string?)null   // 新規登録時はNULLを渡す
+                    KoshinDtm = (DateTime?)null,
+                    KoshinShaCd = (string?)null 
                 }, transaction);
                 Log.Information("Fe支給品情報INSERT成功");
 

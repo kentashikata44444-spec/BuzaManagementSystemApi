@@ -66,6 +66,13 @@ namespace BuzaiManagementApi.Models
         [JsonPropertyName("BUHINKANRINO")]
         public string BuhinKanriNo { get; set; } = string.Empty;
 
+        // ★ 保管エリアコード・名称を追加
+        [JsonPropertyName("HOKANERIACD")]
+        public string? HokanEriaCd { get; set; }
+
+        [JsonPropertyName("HOKANERIAMEISHO")]
+        public string? HokanEriaMeisho { get; set; }
+
         [JsonPropertyName("HOKANBOXCD")]
         public string HokanBoxCd { get; set; } = string.Empty;
 
@@ -96,7 +103,12 @@ namespace BuzaiManagementApi.Models
         [JsonPropertyName("USERCD")]
         public string UserCd { get; set; } = string.Empty;
 
+        [JsonPropertyName("KINKYUKBN")]
         public string? KinkyuKbn { get; set; }
+
+        // 業務担当名（仕分担当名）を受け取るプロパティ
+        [JsonPropertyName("SHIWAKETNTMEI")]
+        public string? ShiwakeTntMei { get; set; }
     }
 
     // 削除リクエストモデル
