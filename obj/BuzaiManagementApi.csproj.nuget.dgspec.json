@@ -1,6 +1,7 @@
 {
   "format": 1,
   "restore": {
+<<<<<<< HEAD
     "C:\\Users\\k-shikata\\Desktop\\Buzai\\BuzaiManagementApi.csproj": {}
   },
   "projects": {
@@ -15,11 +16,36 @@
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\k-shikata\\AppData\\Roaming\\NuGet\\NuGet.Config"
+=======
+    "C:\\Users\\y-aimi\\source\\repos\\BuzaManagementSystemApi\\BuzaiManagementApi.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\y-aimi\\source\\repos\\BuzaManagementSystemApi\\BuzaiManagementApi.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\y-aimi\\source\\repos\\BuzaManagementSystemApi\\BuzaiManagementApi.csproj",
+        "projectName": "BuzaiManagementApi",
+        "projectPath": "C:\\Users\\y-aimi\\source\\repos\\BuzaManagementSystemApi\\BuzaiManagementApi.csproj",
+        "packagesPath": "C:\\Users\\y-aimi\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\y-aimi\\source\\repos\\BuzaManagementSystemApi\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\y-aimi\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
+<<<<<<< HEAD
+=======
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -39,7 +65,11 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
+<<<<<<< HEAD
         "SdkAnalysisLevel": "10.0.300"
+=======
+        "SdkAnalysisLevel": "10.0.400"
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
       },
       "frameworks": {
         "net10.0": {
@@ -50,6 +80,7 @@
               "target": "Package",
               "version": "[2.1.89, )"
             },
+<<<<<<< HEAD
             "ExcelDataReader": {
               "target": "Package",
               "version": "[3.9.0, )"
@@ -58,6 +89,8 @@
               "target": "Package",
               "version": "[3.9.0, )"
             },
+=======
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[10.0.11, )"
@@ -77,10 +110,13 @@
             "Serilog.Sinks.File": {
               "target": "Package",
               "version": "[7.0.0, )"
+<<<<<<< HEAD
             },
             "System.Data.OleDb": {
               "target": "Package",
               "version": "[10.0.12, )"
+=======
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
             }
           },
           "imports": [
@@ -102,7 +138,11 @@
               "privateAssets": "all"
             }
           },
+<<<<<<< HEAD
           "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.303/PortableRuntimeIdentifierGraph.json",
+=======
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

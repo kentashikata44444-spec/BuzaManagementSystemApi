@@ -15,6 +15,7 @@
           }
         }
       },
+<<<<<<< HEAD
       "ExcelDataReader/3.9.0": {
         "type": "package",
         "compile": {
@@ -44,6 +45,8 @@
           }
         }
       },
+=======
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
       "Microsoft.AspNetCore.OpenApi/10.0.11": {
         "type": "package",
         "dependencies": {
@@ -507,6 +510,7 @@
           }
         }
       },
+<<<<<<< HEAD
       "System.Configuration.ConfigurationManager/10.0.12": {
         "type": "package",
         "dependencies": {
@@ -514,11 +518,24 @@
         },
         "compile": {
           "lib/net10.0/System.Configuration.ConfigurationManager.dll": {
+=======
+      "System.Configuration.ConfigurationManager/9.0.18": {
+        "type": "package",
+        "dependencies": {
+          "System.Security.Cryptography.ProtectedData": "9.0.18"
+        },
+        "compile": {
+          "lib/net9.0/_._": {
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
             "related": ".xml"
           }
         },
         "runtime": {
+<<<<<<< HEAD
           "lib/net10.0/System.Configuration.ConfigurationManager.dll": {
+=======
+          "lib/net9.0/System.Configuration.ConfigurationManager.dll": {
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
             "related": ".xml"
           }
         },
@@ -526,6 +543,7 @@
           "buildTransitive/net8.0/_._": {}
         }
       },
+<<<<<<< HEAD
       "System.Data.OleDb/10.0.12": {
         "type": "package",
         "dependencies": {
@@ -577,6 +595,8 @@
           }
         }
       },
+=======
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
       "System.IdentityModel.Tokens.Jwt/8.16.0": {
         "type": "package",
         "dependencies": {
@@ -616,15 +636,26 @@
           }
         }
       },
+<<<<<<< HEAD
       "System.Security.Cryptography.ProtectedData/10.0.12": {
         "type": "package",
         "compile": {
           "lib/net10.0/System.Security.Cryptography.ProtectedData.dll": {
+=======
+      "System.Security.Cryptography.ProtectedData/9.0.18": {
+        "type": "package",
+        "compile": {
+          "lib/net9.0/_._": {
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
             "related": ".xml"
           }
         },
         "runtime": {
+<<<<<<< HEAD
           "lib/net10.0/System.Security.Cryptography.ProtectedData.dll": {
+=======
+          "lib/net9.0/System.Security.Cryptography.ProtectedData.dll": {
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
             "related": ".xml"
           }
         },
@@ -656,6 +687,7 @@
         "readme.md"
       ]
     },
+<<<<<<< HEAD
     "ExcelDataReader/3.9.0": {
       "sha512": "3lEkUzG67UWPYj/xlX5Hua3MeQQktnK0B7WGzDjLpdJpBtct7szX0E4WB3Kl6C/8bNnbkyT2eO0FSPV+9CCemw==",
       "type": "package",
@@ -706,6 +738,8 @@
         "lib/netstandard2.1/ExcelDataReader.DataSet.xml"
       ]
     },
+=======
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
     "Microsoft.AspNetCore.OpenApi/10.0.11": {
       "sha512": "R/1EATnPLU+gRfB6lwVkMcymmyAY5ppBBdRN/5lhNEiT3xP1sWccuSFkU/f1lQvN/WgRq5Vn8AhCdE3fqgsL/w==",
       "type": "package",
@@ -1329,22 +1363,36 @@
         "serilog.sinks.file.nuspec"
       ]
     },
+<<<<<<< HEAD
     "System.Configuration.ConfigurationManager/10.0.12": {
       "sha512": "6KP/CGB9YymJuhNorm5FS/urQJB40h6t4DIiXN8J1VT/jINZHNgjzcdWRHGYuXGLwO7SCOq5K/OMAnh6oRbeLg==",
       "type": "package",
       "path": "system.configuration.configurationmanager/10.0.12",
+=======
+    "System.Configuration.ConfigurationManager/9.0.18": {
+      "sha512": "/1q0MHB2xKyTFRC5tk+oL3Ahi+QK0UPI6Qk6Xc5z5BW6otR2T9wwWmEW/LZX98cq7UOmu+7sZ5HNwuq61zrNtg==",
+      "type": "package",
+      "path": "system.configuration.configurationmanager/9.0.18",
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "Icon.png",
+<<<<<<< HEAD
+=======
+        "LICENSE.TXT",
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
         "PACKAGE.md",
         "THIRD-PARTY-NOTICES.TXT",
         "buildTransitive/net461/System.Configuration.ConfigurationManager.targets",
         "buildTransitive/net462/_._",
         "buildTransitive/net8.0/_._",
         "buildTransitive/netcoreapp2.0/System.Configuration.ConfigurationManager.targets",
+<<<<<<< HEAD
         "lib/net10.0/System.Configuration.ConfigurationManager.dll",
         "lib/net10.0/System.Configuration.ConfigurationManager.xml",
+=======
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
         "lib/net462/System.Configuration.ConfigurationManager.dll",
         "lib/net462/System.Configuration.ConfigurationManager.xml",
         "lib/net8.0/System.Configuration.ConfigurationManager.dll",
@@ -1353,11 +1401,16 @@
         "lib/net9.0/System.Configuration.ConfigurationManager.xml",
         "lib/netstandard2.0/System.Configuration.ConfigurationManager.dll",
         "lib/netstandard2.0/System.Configuration.ConfigurationManager.xml",
+<<<<<<< HEAD
         "system.configuration.configurationmanager.10.0.12.nupkg.sha512",
+=======
+        "system.configuration.configurationmanager.9.0.18.nupkg.sha512",
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
         "system.configuration.configurationmanager.nuspec",
         "useSharedDesignerContext.txt"
       ]
     },
+<<<<<<< HEAD
     "System.Data.OleDb/10.0.12": {
       "sha512": "IwdlDOFT+aVvq95Stb0+hX/L7id9eGOiYsfsbPQsComFWQQL9XoShkcx8qF/nhWL+/0sQgBfM0Yv9eB07/olYg==",
       "type": "package",
@@ -1428,6 +1481,8 @@
         "useSharedDesignerContext.txt"
       ]
     },
+=======
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
     "System.IdentityModel.Tokens.Jwt/8.16.0": {
       "sha512": "rrs2u7DRMXQG2yh0oVyF/vLwosfRv20Ld2iEpYcKwQWXHjfV+gFXNQsQ9p008kR9Ou4pxBs68Q6/9zC8Gi1wjg==",
       "type": "package",
@@ -1487,14 +1542,25 @@
         "useSharedDesignerContext.txt"
       ]
     },
+<<<<<<< HEAD
     "System.Security.Cryptography.ProtectedData/10.0.12": {
       "sha512": "wO0W8VDMeRJZakRySOmemAnrBZMwEFRlbfBtATxUiLf2I3IhSRnCp1Vt157NWptdE4IJ7eftd5n8q9LtaKHFTQ==",
       "type": "package",
       "path": "system.security.cryptography.protecteddata/10.0.12",
+=======
+    "System.Security.Cryptography.ProtectedData/9.0.18": {
+      "sha512": "1/iz9Eex1TBMYdAk+m3igaMvL+nk+rY1EqL6u93an/j1ghxmB24vGOKXkVFy3NSPA39s1H/+SNoK257tHoXoLA==",
+      "type": "package",
+      "path": "system.security.cryptography.protecteddata/9.0.18",
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "Icon.png",
+<<<<<<< HEAD
+=======
+        "LICENSE.TXT",
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
         "PACKAGE.md",
         "THIRD-PARTY-NOTICES.TXT",
         "buildTransitive/net461/System.Security.Cryptography.ProtectedData.targets",
@@ -1503,8 +1569,11 @@
         "buildTransitive/netcoreapp2.0/System.Security.Cryptography.ProtectedData.targets",
         "lib/MonoAndroid10/_._",
         "lib/MonoTouch10/_._",
+<<<<<<< HEAD
         "lib/net10.0/System.Security.Cryptography.ProtectedData.dll",
         "lib/net10.0/System.Security.Cryptography.ProtectedData.xml",
+=======
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
         "lib/net462/System.Security.Cryptography.ProtectedData.dll",
         "lib/net462/System.Security.Cryptography.ProtectedData.xml",
         "lib/net8.0/System.Security.Cryptography.ProtectedData.dll",
@@ -1517,7 +1586,11 @@
         "lib/xamarinmac20/_._",
         "lib/xamarintvos10/_._",
         "lib/xamarinwatchos10/_._",
+<<<<<<< HEAD
         "system.security.cryptography.protecteddata.10.0.12.nupkg.sha512",
+=======
+        "system.security.cryptography.protecteddata.9.0.18.nupkg.sha512",
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
         "system.security.cryptography.protecteddata.nuspec",
         "useSharedDesignerContext.txt"
       ]
@@ -1526,22 +1599,35 @@
   "projectFileDependencyGroups": {
     "net10.0": [
       "Dapper >= 2.1.89",
+<<<<<<< HEAD
       "ExcelDataReader >= 3.9.0",
       "ExcelDataReader.DataSet >= 3.9.0",
+=======
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
       "Microsoft.AspNetCore.OpenApi >= 10.0.11",
       "Microsoft.Data.SqlClient >= 7.1.0",
       "Npgsql >= 10.0.3",
       "Serilog.AspNetCore >= 10.0.0",
+<<<<<<< HEAD
       "Serilog.Sinks.File >= 7.0.0",
       "System.Data.OleDb >= 10.0.12"
     ]
   },
   "packageFolders": {
     "C:\\Users\\k-shikata\\.nuget\\packages\\": {}
+=======
+      "Serilog.Sinks.File >= 7.0.0"
+    ]
+  },
+  "packageFolders": {
+    "C:\\Users\\y-aimi\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
   },
   "project": {
     "version": "1.0.0",
     "restore": {
+<<<<<<< HEAD
       "projectUniqueName": "C:\\Users\\k-shikata\\Desktop\\Buzai\\BuzaiManagementApi.csproj",
       "projectName": "BuzaiManagementApi",
       "projectPath": "C:\\Users\\k-shikata\\Desktop\\Buzai\\BuzaiManagementApi.csproj",
@@ -1550,11 +1636,30 @@
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\k-shikata\\AppData\\Roaming\\NuGet\\NuGet.Config"
+=======
+      "projectUniqueName": "C:\\Users\\y-aimi\\source\\repos\\BuzaManagementSystemApi\\BuzaiManagementApi.csproj",
+      "projectName": "BuzaiManagementApi",
+      "projectPath": "C:\\Users\\y-aimi\\source\\repos\\BuzaManagementSystemApi\\BuzaiManagementApi.csproj",
+      "packagesPath": "C:\\Users\\y-aimi\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\y-aimi\\source\\repos\\BuzaManagementSystemApi\\obj\\",
+      "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
+      "configFilePaths": [
+        "C:\\Users\\y-aimi\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
       ],
       "originalTargetFrameworks": [
         "net10.0"
       ],
       "sources": {
+<<<<<<< HEAD
+=======
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -1574,7 +1679,11 @@
         "auditLevel": "low",
         "auditMode": "all"
       },
+<<<<<<< HEAD
       "SdkAnalysisLevel": "10.0.300"
+=======
+      "SdkAnalysisLevel": "10.0.400"
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
     },
     "frameworks": {
       "net10.0": {
@@ -1585,6 +1694,7 @@
             "target": "Package",
             "version": "[2.1.89, )"
           },
+<<<<<<< HEAD
           "ExcelDataReader": {
             "target": "Package",
             "version": "[3.9.0, )"
@@ -1593,6 +1703,8 @@
             "target": "Package",
             "version": "[3.9.0, )"
           },
+=======
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
           "Microsoft.AspNetCore.OpenApi": {
             "target": "Package",
             "version": "[10.0.11, )"
@@ -1612,10 +1724,13 @@
           "Serilog.Sinks.File": {
             "target": "Package",
             "version": "[7.0.0, )"
+<<<<<<< HEAD
           },
           "System.Data.OleDb": {
             "target": "Package",
             "version": "[10.0.12, )"
+=======
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
           }
         },
         "imports": [
@@ -1637,7 +1752,11 @@
             "privateAssets": "all"
           }
         },
+<<<<<<< HEAD
         "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.303/PortableRuntimeIdentifierGraph.json",
+=======
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
+>>>>>>> dc635dd11b048adee06c3b8f92e68dbf26cea74c
         "packagesToPrune": {
           "Microsoft.AspNetCore": "(,10.0.32767]",
           "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

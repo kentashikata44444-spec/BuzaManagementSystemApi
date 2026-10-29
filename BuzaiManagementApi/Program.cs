@@ -1,19 +1,30 @@
+using BuzaiManagementApi;
 using BuzaiManagementApi.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 「すべて（0.0.0.0）」で待ち受ける設定
+builder.WebHost.UseUrls("http://0.0.0.0:8080");
+
+// ★【追加】 Web APIをWindowsサービスとして動作させるための設定
+builder.Host.UseWindowsService(options =>
+{
+    options.ServiceName = "BuzaiManagementService"; // Windowsサービス一覧に表示される名前
+});
+
 // データベース接続ファクトリの登録
 builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
-
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
-
 // SKL0001G01 用リポジトリの登録
 builder.Services.AddTransient<SKL0001G01Repository>();
+
+// ★【追加】 WorkerクラスをホステッドサービスとしてDIコンテナに登録
+builder.Services.AddHostedService<Worker>();
 
 // コントローラー機能の有効化
 builder.Services.AddControllers();
 
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapibuilder.Services.AddOpenApi();
 builder.Services.AddOpenApi();
 
 // ★ 【追加】 CommonRepository をDIコンテナに登録する
@@ -25,6 +36,22 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+
+    // ==========================================
+    // ★追加：開発（テスト）環境のときだけリクエストをコンソールに出力する
+    // ==========================================
+    app.Use(async (context, next) =>
+    {
+        var remoteIp = context.Connection.RemoteIpAddress?.ToString();
+        var method = context.Request.Method;
+        var path = context.Request.Path;
+
+        Console.WriteLine($"[DEVログ] 受信: {remoteIp} | {method} {path}");
+
+        await next();
+
+        Console.WriteLine($"[DEVログ] 応答: {path} (ステータス: {context.Response.StatusCode})");
+    });
 }
 
 app.UseHttpsRedirection();
@@ -51,6 +78,7 @@ app.MapGet("/weatherforecast", () =>
 })
 .WithName("GetWeatherForecast");
 
+// ポート番号やリッスンするアドレスを明示的に固定する
 app.Run();
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
