@@ -1,48 +1,32 @@
 using BuzaiManagementApi.Models;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Generic;
-using System.Data;
-using Dapper;
 
 namespace BuzaiManagementApi.Repositories
 {
     /// <summary>
-    /// バーコードリーダーマスタ（SAT_BCREADER_M）に関するデータアクセスリポジトリ
+    /// Program.cs でキャッシュされた Reader.txt の内容を提供するリポジトリ
     /// </summary>
     public class BarcodeReaderMasterRepository
     {
-        private readonly IDbConnectionFactory _dbConnectionFactory;
+        private readonly IReadOnlyList<DeviceMappingDto> _cachedDeviceMappings;
         private readonly ILogger<BarcodeReaderMasterRepository> _logger;
 
-        public BarcodeReaderMasterRepository(IDbConnectionFactory dbConnectionFactory, ILogger<BarcodeReaderMasterRepository> logger)
+        public BarcodeReaderMasterRepository(
+            IReadOnlyList<DeviceMappingDto> cachedDeviceMappings,
+            ILogger<BarcodeReaderMasterRepository> logger)
         {
-            _dbConnectionFactory = dbConnectionFactory;
+            _cachedDeviceMappings = cachedDeviceMappings;
             _logger = logger;
         }
 
         /// <summary>
-        /// バーコードリーダーマスタ（SAT_BCREADER_M）から一覧を取得する
+        /// キャッシュされた Reader.txt のデータ一覧を DeviceMappingDto 形式で取得する
         /// </summary>
-        public IEnumerable<BarcodeReaderMasterDto> GetBarcodeReaderList()
+        public IEnumerable<DeviceMappingDto> GetBarcodeReaderList()
         {
-            _logger.LogInformation("GetBarcodeReaderList: SAT_BCREADER_M から一覧の取得を開始します");
-
-            // 1行の通常の文字列として定義し、ASで大文字プロパティへ確実にマッピングする
-            string sql = "SELECT \"HOZON_NM\" AS HOZON_NM, \"MAC_ADS\" AS MAC_ADS, \"MEISHO\" AS MEISHO, \"SEIZOMOTO\" AS SEIZOMOTO, \"MODERU_NO\" AS MODERU_NO, \"SHIRIARU_NO\" AS SHIRIARU_NO FROM \"COMPLEMENTARY\".\"SAT_BCREADER_M\"";
-
-            try
-            {
-                using var connection = _dbConnectionFactory.CreatePostgresConnection();
-                connection.Open();
-
-                return connection.Query<BarcodeReaderMasterDto>(sql);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "GetBarcodeReaderList エラー: {Message}", ex.Message);
-                throw;
-            }
+            _logger.LogInformation("GetBarcodeReaderList: キャッシュされた Reader.txt データから取得します（件数: {Count}件）", _cachedDeviceMappings.Count);
+            return _cachedDeviceMappings;
         }
     }
 }
