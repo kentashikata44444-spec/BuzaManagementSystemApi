@@ -37,7 +37,7 @@ Log.Logger = new LoggerConfiguration()
 Log.Information("アプリケーションの接続・起動処理を開始します。");
 
 // --- AppData\Local\COMPLEMENTARY 配下の local.config.txt (XML形式) からモードを読み込む ---
-string localConfigFilePath = Path.Combine(localAppDataDir, "local.config.txt");
+string localConfigFilePath = Path.Combine(localAppDataDir, "local.config");
 string mode = "Test"; // デフォルト値
 
 if (File.Exists(localConfigFilePath))
@@ -283,6 +283,9 @@ builder.Services.AddScoped<SKL0111G01Repository>();
 builder.Services.AddScoped<CommonRepository>();
 builder.Services.AddScoped<SKL0104G01Repository>();
 builder.Services.AddScoped<BarcodeReaderMasterRepository>();
+
+// ★ 購入品受入検査システム用のリポジトリを追加
+builder.Services.AddScoped<AcceptanceRepository>();
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
