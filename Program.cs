@@ -258,6 +258,13 @@ Log.Logger = new LoggerConfiguration()
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ★ ここに Windowsサービスとして動作させる設定を追加する
+builder.Host.UseWindowsService();
+
+builder.Environment.EnvironmentName = mode;
+builder.WebHost.UseUrls(serverUrl);
+// ... 以降のコードはそのまま
+
 builder.Environment.EnvironmentName = mode;
 builder.WebHost.UseUrls(serverUrl);
 
