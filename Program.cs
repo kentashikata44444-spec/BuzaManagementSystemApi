@@ -46,7 +46,7 @@ if (File.Exists(localConfigFilePath))
     {
         XDocument xDoc = XDocument.Load(localConfigFilePath);
         var envElement = xDoc.Descendants("add")
-                           .FirstOrDefault(e => e.Attribute("key")?.Value?.Equals("Environment", StringComparison.OrdinalIgnoreCase) == true);
+                             .FirstOrDefault(e => e.Attribute("key")?.Value?.Equals("Environment", StringComparison.OrdinalIgnoreCase) == true);
         
         if (envElement != null)
         {
@@ -74,7 +74,6 @@ Log.Information("適用されたモード: [{Mode}]", mode);
 // --- 設定ファイル（.ini）および Reader.txt のパス決定部分 ---
 bool isHonban = mode.Equals("Honban", StringComparison.OrdinalIgnoreCase);
 
-// --- 本番・テスト共通で同一の NAS パスを使用する場合 ---
 string configPath;
 string readerTxtPath = @"\\192.168.0.10\4.改善室\★改善室\A05.config\Reader.txt";
 
@@ -150,6 +149,7 @@ else
 string serverUrl = "http://0.0.0.0:8080";
 int retentionDays = 90;
 string rawPgConnStr = "";
+string rawSqlServerConnStr = "";
 
 if (File.Exists(configPath))
 {
@@ -190,6 +190,8 @@ if (File.Exists(configPath))
             {
                 string key = line.Substring(0, eqIndex).Trim();
                 string val = line.Substring(eqIndex + 1).Trim();
+                
+                // 両端のダブルクォーテーションやシングルクォーテーションを除去
                 if ((val.StartsWith("\"") && val.EndsWith("\"")) || (val.StartsWith("'") && val.EndsWith("'")))
                 {
                     val = val.Substring(1, val.Length - 2);
@@ -216,6 +218,13 @@ if (File.Exists(configPath))
                         rawPgConnStr = val;
                     }
                 }
+                else if (currentSection.Equals("TECHS", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (key.Equals("ConnStr", StringComparison.OrdinalIgnoreCase))
+                    {
+                        rawSqlServerConnStr = val; // ★ ここで正しくTECHSの接続文字列を受け取る
+                    }
+                }
             }
         }
     }
@@ -225,7 +234,7 @@ if (File.Exists(configPath))
     }
 }
 
-// ★ここで postgresConnStr を確実に組み立てる
+// PostgreSQLの接続文字列を組み立てる
 string server = ExtractParam(rawPgConnStr, new[] { "Server", "Host" });
 string port = ExtractParam(rawPgConnStr, new[] { "Port" }, "5432");
 string database = ExtractParam(rawPgConnStr, new[] { "Database", "Initial Catalog" });
@@ -233,9 +242,28 @@ string uidVal = ExtractParam(rawPgConnStr, new[] { "Uid", "Username", "User ID" 
 string pwd = ExtractParam(rawPgConnStr, new[] { "Pwd", "Password" });
 
 string postgresConnStr = $"Host={server};Port={port};Database={database};Username={uidVal};Password={pwd};Timeout=3;";
-string sqlServerConnStr = "Server=techs-sv;Database=TECHS6;Trusted_Connection=True;TrustServerCertificate=True;";
+
+// TECHS (SQL Server) の接続文字列を設定（INIに指定があればそれを使い、なければデフォルト）
+string sqlServerConnStr;
+if (!string.IsNullOrEmpty(rawSqlServerConnStr))
+{
+    // Provider=SQLNCLI11; などの記述を自動で削除する
+    sqlServerConnStr = Regex.Replace(rawSqlServerConnStr, @"Provider\s*=\s*[^;]+;?", "", RegexOptions.IgnoreCase);
+    
+    // 必要に応じて TrustServerCertificate=True が無ければ追加
+    if (!sqlServerConnStr.Contains("TrustServerCertificate", StringComparison.OrdinalIgnoreCase))
+    {
+        sqlServerConnStr = sqlServerConnStr.TrimEnd(';') + ";TrustServerCertificate=True;";
+    }
+}
+else
+{
+    // INIに指定がない場合のデフォルト値
+    sqlServerConnStr = "Server=techs-sv;Database=TECHS6;Trusted_Connection=True;TrustServerCertificate=True;";
+}
 
 Log.Information("最終決定された ServerUrl: {Url}, 保存日数: {Days}日", serverUrl, retentionDays);
+Log.Information("使用する TECHS 接続文字列: {ConnStr}", sqlServerConnStr);
 
 // ロガーの再構成
 Log.Logger = new LoggerConfiguration()
@@ -258,12 +286,8 @@ Log.Logger = new LoggerConfiguration()
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ★ ここに Windowsサービスとして動作させる設定を追加する
+// Windowsサービスとして動作させる設定
 builder.Host.UseWindowsService();
-
-builder.Environment.EnvironmentName = mode;
-builder.WebHost.UseUrls(serverUrl);
-// ... 以降のコードはそのまま
 
 builder.Environment.EnvironmentName = mode;
 builder.WebHost.UseUrls(serverUrl);
@@ -271,7 +295,7 @@ builder.WebHost.UseUrls(serverUrl);
 builder.Logging.ClearProviders();
 builder.Host.UseSerilog();
 
-// ★解決済みの接続文字列を DbConnectionFactory に渡して登録
+// 解決済みの接続文字列を DbConnectionFactory に渡して登録
 builder.Services.AddSingleton<IDbConnectionFactory>(sp => 
     new DbConnectionFactory(
         sp.GetRequiredService<ILogger<DbConnectionFactory>>(), 
@@ -280,7 +304,7 @@ builder.Services.AddSingleton<IDbConnectionFactory>(sp =>
     )
 );
 
-// ★起動時にキャッシュしたデバイスマッピング情報をシングルトンとしてDIに登録
+// 起動時にキャッシュしたデバイスマッピング情報をシングルトンとしてDIに登録
 builder.Services.AddSingleton<System.Collections.Generic.IReadOnlyList<DeviceMappingDto>>(cachedDeviceMappings);
 
 builder.Services.AddTransient<SKL0001G01Repository>();
@@ -291,7 +315,7 @@ builder.Services.AddScoped<CommonRepository>();
 builder.Services.AddScoped<SKL0104G01Repository>();
 builder.Services.AddScoped<BarcodeReaderMasterRepository>();
 
-// ★ 購入品受入検査システム用のリポジトリを追加
+// 購入品受入検査システム用のリポジトリを追加
 builder.Services.AddScoped<AcceptanceRepository>();
 
 builder.Services.AddControllers();
