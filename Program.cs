@@ -46,7 +46,7 @@ if (File.Exists(localConfigFilePath))
     {
         XDocument xDoc = XDocument.Load(localConfigFilePath);
         var envElement = xDoc.Descendants("add")
-                             .FirstOrDefault(e => e.Attribute("key")?.Value?.Equals("Environment", StringComparison.OrdinalIgnoreCase) == true);
+                           .FirstOrDefault(e => e.Attribute("key")?.Value?.Equals("Environment", StringComparison.OrdinalIgnoreCase) == true);
         
         if (envElement != null)
         {
@@ -71,11 +71,10 @@ else
 Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", mode);
 Log.Information("適用されたモード: [{Mode}]", mode);
 
-// --- 設定ファイル（.ini）および Reader.txt のパス決定部分 ---
+// --- 設定ファイル（.ini）のパス決定部分 ---
 bool isHonban = mode.Equals("Honban", StringComparison.OrdinalIgnoreCase);
 
 string configPath;
-string readerTxtPath = @"\\192.168.0.10\4.改善室\★改善室\A05.config\Reader.txt";
 
 if (isHonban)
 {
@@ -91,60 +90,6 @@ else
 }
 
 Log.Information("探索中の設定ファイルパス: {Path}", configPath);
-Log.Information("探索中の Reader.txt パス: {Path}", readerTxtPath);
-
-// --- 起動時に Reader.txt を読み込んでメモリにキャッシュする処理 ---
-var cachedDeviceMappings = new System.Collections.Generic.List<DeviceMappingDto>();
-if (File.Exists(readerTxtPath))
-{
-    try
-    {
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-        byte[] readerBytes = File.ReadAllBytes(readerTxtPath);
-        string readerContent;
-        try
-        {
-            readerContent = Encoding.GetEncoding(932).GetString(readerBytes);
-        }
-        catch
-        {
-            readerContent = Encoding.UTF8.GetString(readerBytes);
-        }
-
-        readerContent = readerContent.Replace("\uFEFF", "").Replace("\u200B", "");
-        var readerLines = readerContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-
-        foreach (var rawLine in readerLines)
-        {
-            string line = rawLine.Trim();
-            if (string.IsNullOrEmpty(line) || line.StartsWith(";") || line.StartsWith("#"))
-                continue;
-
-            var parts = line.Split(new[] { ',', '\t' }, StringSplitOptions.RemoveEmptyEntries)
-                            .Select(p => p.Trim())
-                            .ToArray();
-
-            if (parts.Length >= 2)
-            {
-                cachedDeviceMappings.Add(new DeviceMappingDto
-                {
-                    TargetIpAddress = parts[0],
-                    TargetMacAddress = parts.Length > 1 ? parts[1] : null,
-                    TargetMeisho = parts.Length > 2 ? parts[2] : null
-                });
-            }
-        }
-        Log.Information("起動時処理: Reader.txt から {Count} 件のデバイスマッピングをキャッシュしました。", cachedDeviceMappings.Count);
-    }
-    catch (Exception ex)
-    {
-        Log.Error(ex, "Reader.txt の読み込み中にエラーが発生しました: {Message}", ex.Message);
-    }
-}
-else
-{
-    Log.Warning("指定された Reader.txt が存在しません ({Path})。", readerTxtPath);
-}
 
 string serverUrl = "http://0.0.0.0:8080";
 int retentionDays = 90;
@@ -304,16 +249,12 @@ builder.Services.AddSingleton<IDbConnectionFactory>(sp =>
     )
 );
 
-// 起動時にキャッシュしたデバイスマッピング情報をシングルトンとしてDIに登録
-builder.Services.AddSingleton<System.Collections.Generic.IReadOnlyList<DeviceMappingDto>>(cachedDeviceMappings);
-
 builder.Services.AddTransient<SKL0001G01Repository>();
 builder.Services.AddScoped<SKL0101G01Repository>();
 builder.Services.AddScoped<SKL0110G01Repository>();
 builder.Services.AddScoped<SKL0111G01Repository>();
 builder.Services.AddScoped<CommonRepository>();
 builder.Services.AddScoped<SKL0104G01Repository>();
-builder.Services.AddScoped<BarcodeReaderMasterRepository>();
 
 // 購入品受入検査システム用のリポジトリを追加
 builder.Services.AddScoped<AcceptanceRepository>();
