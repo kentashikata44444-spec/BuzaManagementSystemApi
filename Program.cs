@@ -75,7 +75,7 @@ Log.Information("適用されたモード: [{Mode}]", mode);
 bool isHonban = mode.Equals("Honban", StringComparison.OrdinalIgnoreCase);
 
 string configPath;
-string readerTxtPath = @"\\192.168.0.10\4.改善室\★改善室\A05.config\Reader";
+string readerTxtPath = @"\\192.168.0.10\4.改善室\★改善室\A05.config\Reader.txt";
 
 if (isHonban)
 {
